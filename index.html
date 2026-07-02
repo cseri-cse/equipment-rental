@@ -159,8 +159,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .empty-icon { font-size: 32px; margin-bottom: 8px; }
 
 /* ── 관리자 테이블 ── */
-.admin-eq-head { display: grid; grid-template-columns: 36px 1fr 70px 80px 90px 100px 140px; gap: 10px; padding: 0 0 10px; border-bottom: 1px solid var(--border); font-size: 11px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
-.admin-eq-row { display: grid; grid-template-columns: 36px 1fr 70px 80px 90px 100px 140px; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); align-items: center; }
+.admin-eq-head { display: grid; grid-template-columns: 28px 36px 1fr 70px 80px 90px 100px 140px; gap: 10px; padding: 0 0 10px; border-bottom: 1px solid var(--border); font-size: 11px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.admin-eq-row { display: grid; grid-template-columns: 28px 36px 1fr 70px 80px 90px 100px 140px; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); align-items: center; }
 .admin-eq-row:last-child { border-bottom: none; }
 
 /* ── 토스트 ── */
@@ -364,10 +364,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
           <span class="search-icon">⌕</span>
           <input type="text" id="admin-search" placeholder="검색..." oninput="renderAdminTable()">
         </div>
+        <button class="btn btn-sm btn-danger" id="bulk-delete-btn" onclick="doBulkDelete()" style="display:none">선택 삭제</button>
         <button class="btn btn-primary btn-sm" onclick="showPage('additem')">+ 기자재 추가</button>
       </div>
     </div>
     <div class="admin-eq-head">
+      <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" style="cursor:pointer;width:16px;height:16px">
       <span>NO</span><span>기자재명</span><span>위치</span><span>대여자</span><span>반납 기한</span><span>현황</span><span>액션</span>
     </div>
     <div id="admin-eq-body"><div class="loading"><div class="spinner"></div></div></div>
@@ -914,7 +916,8 @@ function renderAdminTable() {
       ? `<button class="btn btn-sm ${isOverdue ? 'btn-danger' : ''}" onclick="doForceReturn('${e.currentRental?.rentalId}')">강제 반납</button>`
       : `<button class="btn btn-sm" onclick='openEditModal(${e.id})'>수정</button> <button class="btn btn-sm btn-danger" onclick='doDeleteEquipment(${e.id},"${e.name}")'>삭제</button>`;
 
-    return `<div class="admin-eq-row">
+    return `<div class="admin-eq-row" data-id="${e.id}">
+      <input type="checkbox" class="eq-checkbox" value="${e.id}" onchange="onCheckboxChange()" style="cursor:pointer;width:16px;height:16px">
       <span class="eq-no">${e.id}</span>
       <div><div style="font-size:13px;font-weight:500">${e.name}</div><div class="eq-sub">${e.code || ''}</div></div>
       <span class="badge b-loc">📍 ${e.location}</span>
@@ -1030,6 +1033,57 @@ function logoutAdmin() {
   document.getElementById('admin-login-btn').onclick = () => showPage('login');
   toast('로그아웃됐습니다.');
   showPage('list');
+}
+
+// ══ 체크박스 선택 관리 ══
+function onCheckboxChange() {
+  const checkboxes = document.querySelectorAll('.eq-checkbox');
+  const checked = document.querySelectorAll('.eq-checkbox:checked');
+  const selectAll = document.getElementById('select-all');
+  const bulkBtn = document.getElementById('bulk-delete-btn');
+
+  selectAll.indeterminate = checked.length > 0 && checked.length < checkboxes.length;
+  selectAll.checked = checked.length === checkboxes.length && checkboxes.length > 0;
+  
+  if (checked.length > 0) {
+    bulkBtn.style.display = 'block';
+    bulkBtn.textContent = `선택 삭제 (${checked.length}개)`;
+  } else {
+    bulkBtn.style.display = 'none';
+  }
+}
+
+function toggleSelectAll(el) {
+  document.querySelectorAll('.eq-checkbox').forEach(cb => cb.checked = el.checked);
+  onCheckboxChange();
+}
+
+async function doBulkDelete() {
+  const checked = [...document.querySelectorAll('.eq-checkbox:checked')];
+  if (!checked.length) return;
+  
+  const names = checked.map(cb => {
+    const row = cb.closest('.admin-eq-row');
+    return row.querySelector('[style*="font-size:13px"]')?.textContent || cb.value;
+  });
+  
+  if (!confirm(`선택한 ${checked.length}개 기자재를 삭제하시겠습니까?\n\n${names.join('\n')}\n\n현재 대여중인 경우 대여 내역은 유지됩니다.`)) return;
+  
+  const ids = checked.map(cb => cb.value);
+  const btn = document.getElementById('bulk-delete-btn');
+  btn.textContent = '삭제 중...'; btn.disabled = true;
+  
+  try {
+    const res = await apiPost({ action: 'bulkDeleteEquipment', ids });
+    if (res.success) {
+      toast(`${ids.length}개 기자재가 삭제됐습니다.`);
+      document.getElementById('select-all').checked = false;
+      btn.style.display = 'none';
+      loadAdminDashboard();
+      loadEquipment();
+    } else toast(res.error || '삭제 실패');
+  } catch(e) { toast('오류: ' + e.message); }
+  btn.textContent = '선택 삭제'; btn.disabled = false;
 }
 
 // ══ 기자재 삭제 (관리자) ══
