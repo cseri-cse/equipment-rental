@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기자재 대여 — 미융기/융보공</title>
+<style>
+:root {
+  --bg: #f9f9f8;
+  --surface: #ffffff;
+  --border: #e5e5e3;
+  --border-strong: #c8c8c5;
+  --text: #1a1a18;
+  --text-2: #5a5a57;
+  --text-3: #9a9a96;
+  --blue: #185FA5;
+  --blue-bg: #E6F1FB;
+  --blue-text: #0C447C;
+  --green: #3B6D11;
+  --green-bg: #EAF3DE;
+  --red: #A32D2D;
+  --red-bg: #FCEBEB;
+  --red-light: #F09595;
+  --amber: #854F0B;
+  --amber-bg: #FAEEDA;
+  --gray-bg: #F1EFE8;
+  --gray-text: #444441;
+  --coral-bg: #FAECE7;
+  --coral-text: #993C1D;
+  --purple-bg: #EEEDFE;
+  --purple-text: #534AB7;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+/* ── 레이아웃 ── */
+.app { display: flex; min-height: 100vh; }
+.sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); padding: 24px 0; flex-shrink: 0; position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; z-index: 10; }
+.main { margin-left: 220px; flex: 1; padding: 32px; max-width: 960px; }
+
+/* ── 사이드바 ── */
+.logo { padding: 0 20px 24px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.logo-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.logo-sub { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 20px; font-size: 13px; color: var(--text-2); cursor: pointer; border-radius: 0; transition: background 0.1s; border: none; background: none; width: 100%; text-align: left; }
+.nav-item:hover { background: var(--bg); color: var(--text); }
+.nav-item.active { background: var(--blue-bg); color: var(--blue-text); font-weight: 500; }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+.nav-divider { height: 1px; background: var(--border); margin: 12px 20px; }
+.nav-label { font-size: 10px; font-weight: 600; color: var(--text-3); padding: 0 20px 6px; letter-spacing: 0.06em; text-transform: uppercase; }
+.admin-btn { margin: auto 20px 20px; padding: 8px 14px; background: var(--text); color: #fff; border: none; border-radius: var(--radius); font-size: 13px; cursor: pointer; width: calc(100% - 40px); }
+.admin-btn:hover { opacity: 0.85; }
+
+/* ── 페이지 공통 ── */
+.page { display: none; }
+.page.active { display: block; }
+.page-title { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+.page-sub { font-size: 13px; color: var(--text-2); margin-bottom: 24px; }
+
+/* ── 카드 ── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; }
+.card-title { font-size: 12px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+
+/* ── 메트릭 ── */
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
+.metric-label { font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
+.metric-value { font-size: 26px; font-weight: 600; }
+
+/* ── 배지 ── */
+.badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.b-available { background: var(--green-bg); color: var(--green); }
+.b-rented { background: var(--coral-bg); color: var(--coral-text); }
+.b-overdue { background: var(--red-bg); color: var(--red); }
+.b-broken { background: var(--gray-bg); color: var(--gray-text); }
+.b-common { background: var(--blue-bg); color: var(--blue-text); }
+.b-personal { background: var(--purple-bg); color: var(--purple-text); }
+.b-loc { background: var(--gray-bg); color: var(--gray-text); font-size: 11px; }
+.b-warn { background: var(--amber-bg); color: var(--amber); }
+
+/* ── 버튼 ── */
+.btn { padding: 7px 14px; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--surface); font-size: 13px; cursor: pointer; color: var(--text); transition: background 0.1s; }
+.btn:hover { background: var(--bg); }
+.btn-primary { background: var(--text); color: #fff; border-color: var(--text); }
+.btn-primary:hover { opacity: 0.85; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-danger { border-color: var(--red-light); color: var(--red); }
+.btn-danger:hover { background: var(--red-bg); }
+
+/* ── 폼 ── */
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 12px; color: var(--text-2); margin-bottom: 5px; display: block; font-weight: 500; }
+.form-input { width: 100%; padding: 9px 11px; border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 13px; background: var(--surface); color: var(--text); transition: border-color 0.1s; }
+.form-input:focus { outline: none; border-color: var(--blue); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.tip { background: var(--blue-bg); border-radius: var(--radius); padding: 10px 12px; font-size: 12px; color: var(--blue-text); margin-bottom: 14px; }
+.form-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+/* ── 기자재 테이블 ── */
+.eq-table { width: 100%; }
+.eq-head { display: grid; grid-template-columns: 36px 1fr 70px 80px 140px 100px 80px; gap: 10px; padding: 0 0 10px; border-bottom: 1px solid var(--border); font-size: 11px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.eq-row { display: grid; grid-template-columns: 36px 1fr 70px 80px 140px 100px 80px; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); align-items: center; }
+.eq-row:last-child { border-bottom: none; }
+.eq-no { font-size: 12px; color: var(--text-3); }
+.eq-name { font-size: 13px; font-weight: 500; color: var(--blue); cursor: pointer; }
+.eq-name:hover { text-decoration: underline; }
+.eq-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.eq-renter { font-size: 12px; }
+.eq-renter-due { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+
+/* ── 검색/필터 바 ── */
+.toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 10px; flex-wrap: wrap; }
+.search-wrap { position: relative; flex: 1; max-width: 240px; }
+.search-wrap input { width: 100%; padding: 8px 10px 8px 32px; border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 13px; background: var(--surface); color: var(--text); }
+.search-wrap input:focus { outline: none; border-color: var(--blue); }
+.search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text-3); font-size: 14px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-strong); font-size: 12px; cursor: pointer; background: var(--surface); color: var(--text-2); }
+.chip.on { background: var(--text); color: #fff; border-color: var(--text); }
+
+/* ── 알림 행 ── */
+.alert-row { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: var(--radius); margin-bottom: 8px; }
+.alert-row .ar-name { font-size: 13px; font-weight: 500; flex: 1; }
+.alert-row .ar-days { font-size: 12px; white-space: nowrap; }
+
+/* ── 내 대여 행 ── */
+.my-row { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.my-row:last-child { border-bottom: none; }
+
+/* ── 검수 행 ── */
+.inspect-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius); margin-bottom: 6px; background: var(--bg); }
+.inspect-row .ir-name { font-size: 13px; flex: 1; }
+
+/* ── 모달 ── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 24px; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; }
+.modal-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+.modal-title { font-size: 16px; font-weight: 600; }
+.modal-close { background: none; border: none; cursor: pointer; color: var(--text-3); font-size: 18px; line-height: 1; padding: 2px; }
+
+/* ── 사진 업로드 존 ── */
+.upload-zone { border: 1.5px dashed var(--border-strong); border-radius: var(--radius); padding: 28px; text-align: center; cursor: pointer; color: var(--text-3); font-size: 13px; transition: border-color 0.15s; }
+.upload-zone:hover { border-color: var(--blue); color: var(--blue); }
+.upload-zone.has-file { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+.photo-preview { width: 100%; height: 200px; object-fit: contain; border-radius: var(--radius); background: var(--bg); border: 1px solid var(--border); margin-bottom: 12px; }
+
+/* ── 로딩 ── */
+.loading { text-align: center; padding: 40px; color: var(--text-3); font-size: 13px; }
+.spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── 빈 상태 ── */
+.empty { text-align: center; padding: 40px; color: var(--text-3); }
+.empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+/* ── 관리자 테이블 ── */
+.admin-eq-head { display: grid; grid-template-columns: 36px 1fr 70px 80px 90px 100px 90px; gap: 10px; padding: 0 0 10px; border-bottom: 1px solid var(--border); font-size: 11px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.admin-eq-row { display: grid; grid-template-columns: 36px 1fr 70px 80px 90px 100px 90px; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); align-items: center; }
+.admin-eq-row:last-child { border-bottom: none; }
+
+/* ── 토스트 ── */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: #fff; padding: 11px 20px; border-radius: var(--radius); font-size: 13px; z-index: 200; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+
+/* ── 플로우 배너 ── */
+.flow-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.flow-step { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; font-size: 12px; }
+.flow-arrow { color: var(--text-3); font-size: 13px; }
+
+/* ── 수정/연장 모달 ── */
+.edit-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ── 반응형 ── */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); transition: transform 0.2s; }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; padding: 16px; }
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .form-grid { grid-template-columns: 1fr; }
+  .eq-head, .eq-row { grid-template-columns: 36px 1fr 80px 90px; }
+  .eq-head span:nth-child(3), .eq-row > *:nth-child(3),
+  .eq-head span:nth-child(5), .eq-row > *:nth-child(5) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+<!-- ── 사이드바 ── -->
+<aside class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-title">기자재 대여</div>
+    <div class="logo-sub">미융기/융보공 대학원 기자재 대여 관리</div>
+  </div>
+
+  <span class="nav-label">학생</span>
+  <button class="nav-item active" onclick="showPage('list')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+    기자재 목록
+  </button>
+  <button class="nav-item" onclick="showPage('checkout')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+    대여하기
+  </button>
+  <button class="nav-item" onclick="showPage('mypage')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    내 대여 / 반납
+  </button>
+
+  <div class="nav-divider"></div>
+  <span class="nav-label">관리자</span>
+  <button class="nav-item" id="nav-admin" onclick="showPage('admin')" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    대시보드
+  </button>
+  <button class="nav-item" id="nav-additem" onclick="showPage('additem')" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+    기자재 추가
+  </button>
+
+  <button class="admin-btn" id="admin-login-btn" onclick="showPage('login')">관리자 로그인</button>
+</aside>
+
+<!-- ── 메인 콘텐츠 ── -->
+<main class="main">
+
+<!-- 기자재 목록 -->
+<div id="page-list" class="page active">
+  <div class="page-title">기자재 & 장비 대여</div>
+  <div class="page-sub">셀프 대여/반납 · 기자재명 클릭 시 사진 및 상세 정보 확인 가능</div>
+
+  <div class="flow-bar">
+    <div class="flow-step" style="background:var(--blue-bg);color:var(--blue-text)">① 대여하기 탭에서 체크아웃</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step" style="background:var(--coral-bg);color:var(--coral-text)">② 기자재 픽업 (보관 위치 확인)</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step" style="background:var(--green-bg);color:var(--green)">③ 내 대여/반납 탭에서 반납</div>
+  </div>
+
+  <div class="toolbar">
+    <div class="chips" id="filter-chips">
+      <button class="chip on" data-filter="all">전체</button>
+      <button class="chip" data-filter="공통 대여">공통 대여</button>
+      <button class="chip" data-filter="개인 배정">개인 배정</button>
+      <button class="chip" data-filter="대여 가능">대여 가능</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="search-input" placeholder="기자재명 검색...">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="showPage('checkout')">+ 대여하기</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="eq-head">
+      <span>NO</span><span>기자재명</span><span>구분</span><span>보관 위치</span><span>대여 정보</span><span>현황</span><span></span>
+    </div>
+    <div id="eq-list-body">
+      <div class="loading"><div class="spinner"></div><br>불러오는 중...</div>
+    </div>
+    <div id="eq-list-footer" style="padding-top:12px;text-align:center;font-size:12px;color:var(--text-3)"></div>
+  </div>
+</div>
+
+<!-- 대여하기 -->
+<div id="page-checkout" class="page">
+  <div class="page-title">대여하기</div>
+  <div class="page-sub">이름과 반납 예정일을 입력하면 즉시 대여 처리됩니다</div>
+  <div class="card" style="max-width:480px">
+    <div class="form-group">
+      <label class="form-label">기자재 선택</label>
+      <select class="form-input" id="co-equip">
+        <option value="">로딩 중...</option>
+      </select>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">이름</label>
+        <input class="form-input" type="text" id="co-name" placeholder="홍길동">
+      </div>
+      <div class="form-group">
+        <label class="form-label">연락처 (이메일 or 전화)</label>
+        <input class="form-input" type="text" id="co-contact" placeholder="hong@sungshin.ac.kr">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">반납 예정일</label>
+      <input class="form-input" type="date" id="co-due">
+    </div>
+    <div class="form-group">
+      <label class="form-label">사용 목적 (선택)</label>
+      <textarea class="form-input" id="co-purpose" rows="2" placeholder="연구 프로젝트명 등..."></textarea>
+    </div>
+    <div class="tip">입력한 이름과 반납 예정일은 기자재 목록에 표시됩니다. 연락처는 내 대여 조회에만 사용됩니다.</div>
+    <div class="form-footer">
+      <button class="btn btn-sm" onclick="showPage('list')">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="doCheckout()">대여 시작</button>
+    </div>
+  </div>
+</div>
+
+<!-- 내 대여 / 반납 -->
+<div id="page-mypage" class="page">
+  <div class="page-title">내 대여 / 반납</div>
+  <div class="page-sub">이름과 연락처로 조회 후 반납 처리하세요</div>
+  <div class="card" style="max-width:480px;margin-bottom:20px">
+    <div class="form-grid">
+      <div class="form-group" style="margin:0">
+        <label class="form-label">이름</label>
+        <input class="form-input" type="text" id="my-name" placeholder="홍길동">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">연락처</label>
+        <input class="form-input" type="text" id="my-contact" placeholder="hong@sungshin.ac.kr">
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="loadMyRentals()">조회</button>
+  </div>
+  <div id="my-results"></div>
+</div>
+
+<!-- 관리자 대시보드 -->
+<div id="page-admin" class="page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+    <div>
+      <div class="page-title">관리자 대시보드</div>
+      <div class="page-sub" style="margin:0">기자재 현황 · 장기 미반납 · 정기 검수</div>
+    </div>
+    <button class="btn btn-sm" onclick="logoutAdmin()">로그아웃</button>
+  </div>
+  <div class="metrics" id="admin-metrics">
+    <div class="metric"><div class="metric-label">전체 기자재</div><div class="metric-value" id="m-total">—</div></div>
+    <div class="metric"><div class="metric-label">대여중</div><div class="metric-value" id="m-rented" style="color:var(--coral-text)">—</div></div>
+    <div class="metric"><div class="metric-label">대여 가능</div><div class="metric-value" id="m-avail" style="color:var(--green)">—</div></div>
+    <div class="metric" style="border-color:var(--red-light)"><div class="metric-label" style="color:var(--red)">기한 초과</div><div class="metric-value" id="m-overdue" style="color:var(--red)">—</div></div>
+  </div>
+
+  <div class="card" id="overdue-section" style="margin-bottom:16px">
+    <div class="card-title">📞 장기 미반납 — 연락 필요</div>
+    <div id="overdue-list"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="card-title" style="margin:0">전체 기자재 현황</div>
+      <div style="display:flex;gap:8px">
+        <div class="search-wrap" style="max-width:160px">
+          <span class="search-icon">⌕</span>
+          <input type="text" id="admin-search" placeholder="검색..." oninput="renderAdminTable()">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="showPage('additem')">+ 기자재 추가</button>
+      </div>
+    </div>
+    <div class="admin-eq-head">
+      <span>NO</span><span>기자재명</span><span>위치</span><span>대여자</span><span>반납 기한</span><span>현황</span><span>액션</span>
+    </div>
+    <div id="admin-eq-body"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
+<!-- 기자재 추가 -->
+<div id="page-additem" class="page">
+  <div class="page-title">기자재 추가</div>
+  <div class="page-sub">새 기자재를 목록에 등록합니다</div>
+  <div class="card" style="max-width:480px">
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">기자재명 *</label>
+        <input class="form-input" type="text" id="add-name" placeholder="예: 라즈베리파이 5">
+      </div>
+      <div class="form-group">
+        <label class="form-label">관리번호</label>
+        <input class="form-input" type="text" id="add-code" placeholder="예: ME 2026-0001">
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">구분</label>
+        <select class="form-input" id="add-category">
+          <option>공통 대여</option>
+          <option>개인 배정</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">보관 위치 *</label>
+        <input class="form-input" type="text" id="add-location" placeholder="예: A-1칸">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">상태</label>
+      <select class="form-input" id="add-condition">
+        <option>양호</option>
+        <option>고장</option>
+        <option>점검 필요</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">사진 업로드</label>
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('photo-file').click()">
+        <div style="font-size:24px;margin-bottom:6px">📷</div>
+        클릭하여 사진 선택 (JPG / PNG)
+      </div>
+      <input type="file" id="photo-file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="onPhotoSelect(event)">
+      <img id="photo-preview-img" class="photo-preview" style="display:none">
+    </div>
+    <div class="form-group">
+      <label class="form-label">비고</label>
+      <textarea class="form-input" id="add-note" rows="2" placeholder="구매일, 모델 정보 등"></textarea>
+    </div>
+    <div class="form-footer">
+      <button class="btn btn-sm" onclick="showPage('admin')">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="doAddEquipment()">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- 관리자 로그인 -->
+<div id="page-login" class="page">
+  <div style="max-width:340px;margin:60px auto 0">
+    <div class="page-title" style="margin-bottom:4px">관리자 로그인</div>
+    <div class="page-sub">미융기/융보공 기자재 관리 시스템</div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">아이디</label>
+        <input class="form-input" type="text" id="login-id" placeholder="아이디 입력">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">비밀번호</label>
+        <input class="form-input" type="password" id="login-pw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:16px" onclick="doLogin()">로그인</button>
+      <div style="margin-top:12px;text-align:center">
+        <button class="btn btn-sm" onclick="showPage('list')" style="border:none;color:var(--text-3);font-size:12px">← 기자재 목록으로</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- 사진 상세 모달 -->
+<div class="modal-overlay" id="photo-modal-overlay" onclick="closePhotoModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="pm-name"></div>
+        <div style="font-size:12px;color:var(--text-3);margin-top:2px" id="pm-code"></div>
+      </div>
+      <button class="modal-close" onclick="closePhotoModal()">✕</button>
+    </div>
+    <img id="pm-photo" class="photo-preview" style="display:none">
+    <div id="pm-no-photo" style="height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);border-radius:var(--radius);margin-bottom:14px;color:var(--text-3);font-size:13px;gap:6px">
+      <span style="font-size:28px">📷</span>
+      사진이 등록되지 않았습니다
+    </div>
+    <div id="pm-details" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:16px"></div>
+    <button class="btn btn-primary" style="width:100%" id="pm-checkout-btn">이 기자재 대여하기</button>
+  </div>
+</div>
+
+<!-- 기자재 수정 모달 -->
+<!-- 기자재 수정 모달 -->
+<div class="modal-overlay" id="edit-modal-overlay" onclick="closeEditModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">기자재 수정</div>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <input type="hidden" id="edit-id">
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">기자재명</label><input class="form-input" id="edit-name" readonly style="background:var(--bg);color:var(--text-3)"></div>
+      <div class="form-group"><label class="form-label">관리번호</label><input class="form-input" id="edit-code" readonly style="background:var(--bg);color:var(--text-3)"></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">보관 위치</label><input class="form-input" id="edit-location" placeholder="예: A-1칸"></div>
+      <div class="form-group"><label class="form-label">상태</label><select class="form-input" id="edit-condition"><option>양호</option><option>고장</option><option>점검 필요</option></select></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">사진 교체 (선택)</label>
+      <div class="upload-zone" id="edit-upload-zone" onclick="document.getElementById('edit-photo-file').click()">
+        <div style="font-size:20px;margin-bottom:4px">📷</div>클릭하여 새 사진 선택
+      </div>
+      <input type="file" id="edit-photo-file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="onEditPhotoSelect(event)">
+      <img id="edit-photo-preview" class="photo-preview" style="display:none;margin-top:10px">
+    </div>
+    <div class="form-group"><label class="form-label">비고</label><textarea class="form-input" id="edit-note" rows="2"></textarea></div>
+    <div class="form-footer">
+      <button class="btn btn-sm" onclick="closeEditModal()">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="doEditEquipment()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 대여 연장 모달 -->
+<div class="modal-overlay" id="extend-modal-overlay" onclick="closeExtendModal(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:360px">
+    <div class="modal-header">
+      <div class="modal-title">반납일 연장</div>
+      <button class="modal-close" onclick="closeExtendModal()">✕</button>
+    </div>
+    <input type="hidden" id="extend-rental-id">
+    <input type="hidden" id="extend-name-val">
+    <input type="hidden" id="extend-contact-val">
+    <div id="extend-equip-info" style="background:var(--bg);border-radius:var(--radius);padding:10px 12px;font-size:13px;margin-bottom:16px;color:var(--text-2)"></div>
+    <div class="form-group"><label class="form-label">새 반납 예정일</label><input class="form-input" type="date" id="extend-due"></div>
+    <div class="tip">연장 후 기존 반납 예정일이 새 날짜로 변경됩니다.</div>
+    <div class="form-footer">
+      <button class="btn btn-sm" onclick="closeExtendModal()">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="doExtend()">연장 확정</button>
+    </div>
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbw32CGQ8xdPtWKLoi1BYqRtqPlGpsrTpNP-w-oipVnkyEnuzh-L7iHgQc5HXfQBcVmrzw/exec';
+
+let equipmentData = [];
+let rentalsData = [];
+let currentFilter = 'all';
+let currentSearch = '';
+let isAdmin = false;
+
+// ── 페이지 전환 ──
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const navMap = { list: 0, checkout: 1, mypage: 2 };
+  if (navMap[id] !== undefined) document.querySelectorAll('.nav-item')[navMap[id]].classList.add('active');
+
+  if (id === 'list') loadEquipment();
+  if (id === 'checkout') loadCheckoutOptions();
+  if (id === 'admin') loadAdminDashboard();
+}
+
+// ── API 호출 ──
+async function api(params) {
+  const url = API + '?' + new URLSearchParams(params);
+  const res = await fetch(url);
+  return res.json();
+}
+async function apiPost(body) {
+  const res = await fetch(API, { method: 'POST', body: JSON.stringify(body) });
+  return res.json();
+}
+
+// ── 토스트 ──
+function toast(msg, dur = 3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ── 날짜 포맷 ──
+function fmt(d) { return d ? String(d).slice(0, 10) : '—'; }
+function overdueDays(due) {
+  const diff = new Date() - new Date(due);
+  return Math.floor(diff / 86400000);
+}
+
+// ══════════════════════════════
+// 기자재 목록
+// ══════════════════════════════
+async function loadEquipment() {
+  document.getElementById('eq-list-body').innerHTML = '<div class="loading"><div class="spinner"></div><br>불러오는 중...</div>';
+  try {
+    const res = await api({ action: 'getEquipment' });
+    if (!res.success) throw new Error(res.error);
+    equipmentData = res.data;
+    renderEquipmentList();
+  } catch (e) {
+    document.getElementById('eq-list-body').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>데이터를 불러오지 못했습니다.<br><small>' + e.message + '</small></div>';
+  }
+}
+
+function renderEquipmentList() {
+  const body = document.getElementById('eq-list-body');
+  let data = equipmentData;
+
+  if (currentFilter !== 'all') {
+    if (currentFilter === '대여 가능') data = data.filter(e => e.rentalStatus === '대여 가능');
+    else data = data.filter(e => e.category === currentFilter);
+  }
+  if (currentSearch) {
+    const q = currentSearch.toLowerCase();
+    data = data.filter(e => e.name.toLowerCase().includes(q) || (e.code || '').toLowerCase().includes(q));
+  }
+
+  if (!data.length) { body.innerHTML = '<div class="empty"><div class="empty-icon">📦</div>해당하는 기자재가 없습니다</div>'; return; }
+
+  body.innerHTML = data.map(e => {
+    const statusBadge = {
+      '대여 가능': '<span class="badge b-available">대여 가능</span>',
+      '대여중':    '<span class="badge b-rented">대여중</span>',
+      '기한 초과': '<span class="badge b-overdue">기한 초과</span>',
+      '대여 불가': '<span class="badge b-broken">대여 불가</span>'
+    }[e.rentalStatus] || '';
+
+    const catBadge = e.category === '공통 대여'
+      ? '<span class="badge b-common">공통</span>'
+      : '<span class="badge b-personal">개인</span>';
+
+    const renterInfo = e.currentRental
+      ? `<span class="eq-renter">${e.currentRental.renter}</span><div class="eq-renter-due">~${fmt(e.currentRental.dueDate)}</div>`
+      : '<span style="color:var(--text-3);font-size:12px">—</span>';
+
+    const actionBtn = e.rentalStatus === '대여 가능'
+      ? `<button class="btn btn-sm" onclick="quickCheckout(${e.id},'${e.name}')">대여</button>`
+      : `<button class="btn btn-sm" style="opacity:0.35;cursor:default" disabled>—</button>`;
+
+    return `<div class="eq-row">
+      <span class="eq-no">${e.id}</span>
+      <div>
+        <div class="eq-name" onclick="openPhotoModal(${e.id})">${e.name}</div>
+        <div class="eq-sub">${e.code || ''}</div>
+      </div>
+      ${catBadge}
+      <span class="badge b-loc">📍 ${e.location || '—'}</span>
+      <div>${renterInfo}</div>
+      ${statusBadge}
+      ${actionBtn}
+    </div>`;
+  }).join('');
+
+  document.getElementById('eq-list-footer').textContent =
+    `총 ${equipmentData.length}개 · 대여 가능 ${equipmentData.filter(e => e.rentalStatus === '대여 가능').length}개`;
+}
+
+// 필터 칩
+document.querySelectorAll('.chip').forEach(c => {
+  c.addEventListener('click', function() {
+    document.querySelectorAll('.chip').forEach(x => x.classList.remove('on'));
+    this.classList.add('on');
+    currentFilter = this.dataset.filter;
+    renderEquipmentList();
+  });
+});
+document.getElementById('search-input').addEventListener('input', function() {
+  currentSearch = this.value;
+  renderEquipmentList();
+});
+
+// ── 사진 모달 ──
+function openPhotoModal(id) {
+  const e = equipmentData.find(x => x.id == id);
+  if (!e) return;
+  document.getElementById('pm-name').textContent = e.name;
+  document.getElementById('pm-code').textContent = e.code || '';
+
+  const img = document.getElementById('pm-photo');
+  const noPhoto = document.getElementById('pm-no-photo');
+  if (e.photoUrl) {
+    img.src = e.photoUrl;
+    img.style.display = 'block';
+    noPhoto.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    noPhoto.style.display = 'flex';
+  }
+
+  const statusBadge = { '대여 가능': '<span class="badge b-available">대여 가능</span>', '대여중': '<span class="badge b-rented">대여중</span>', '기한 초과': '<span class="badge b-overdue">기한 초과</span>', '대여 불가': '<span class="badge b-broken">대여 불가</span>' };
+  document.getElementById('pm-details').innerHTML = `
+    <div><span style="color:var(--text-3)">구분</span> &nbsp;${e.category === '공통 대여' ? '<span class="badge b-common">공통</span>' : '<span class="badge b-personal">개인</span>'}</div>
+    <div><span style="color:var(--text-3)">보관 위치</span> &nbsp;<span class="badge b-loc">📍 ${e.location}</span></div>
+    <div><span style="color:var(--text-3)">상태</span> &nbsp;${e.condition}</div>
+    <div><span style="color:var(--text-3)">최근 점검</span> &nbsp;${fmt(e.lastChecked)}</div>
+    <div style="grid-column:span 2"><span style="color:var(--text-3)">현황</span> &nbsp;${statusBadge[e.rentalStatus] || ''} ${e.currentRental ? '· ' + e.currentRental.renter + ' ~' + fmt(e.currentRental.dueDate) : ''}</div>
+  `;
+
+  const btn = document.getElementById('pm-checkout-btn');
+  if (e.rentalStatus === '대여 가능') {
+    btn.style.display = 'block';
+    btn.onclick = () => { closePhotoModal(); quickCheckout(e.id, e.name); };
+  } else {
+    btn.style.display = 'none';
+  }
+
+  document.getElementById('photo-modal-overlay').classList.add('open');
+}
+function closePhotoModal(e) {
+  if (!e || e.target === document.getElementById('photo-modal-overlay')) {
+    document.getElementById('photo-modal-overlay').classList.remove('open');
+  }
+}
+
+// ══════════════════════════════
+// 대여하기
+// ══════════════════════════════
+function loadCheckoutOptions() {
+  const sel = document.getElementById('co-equip');
+  const avail = equipmentData.filter(e => e.rentalStatus === '대여 가능');
+  if (!avail.length) { sel.innerHTML = '<option>대여 가능한 기자재 없음</option>'; return; }
+  sel.innerHTML = avail.map(e => `<option value="${e.id}" data-name="${e.name}">${e.name} (${e.code || e.id}) — ${e.location}</option>`).join('');
+}
+
+function quickCheckout(id, name) {
+  showPage('checkout');
+  setTimeout(() => {
+    const sel = document.getElementById('co-equip');
+    for (let o of sel.options) { if (o.value == id) { sel.value = id; break; } }
+  }, 100);
+}
+
+async function doCheckout() {
+  const sel = document.getElementById('co-equip');
+  const equipId = sel.value;
+  const equipName = sel.options[sel.selectedIndex]?.dataset.name || sel.options[sel.selectedIndex]?.text;
+  const renter = document.getElementById('co-name').value.trim();
+  const contact = document.getElementById('co-contact').value.trim();
+  const dueDate = document.getElementById('co-due').value;
+  const purpose = document.getElementById('co-purpose').value.trim();
+
+  if (!equipId || !renter || !contact || !dueDate) { toast('필수 항목을 모두 입력해주세요.'); return; }
+
+  const btn = event.target;
+  btn.textContent = '처리 중...'; btn.disabled = true;
+  try {
+    const res = await apiPost({ action: 'checkout', equipId, equipName, renter, contact, dueDate, purpose });
+    if (res.success) {
+      toast('대여 처리됐습니다! 반납 시 "내 대여/반납" 탭을 이용하세요.');
+      document.getElementById('co-name').value = '';
+      document.getElementById('co-contact').value = '';
+      document.getElementById('co-due').value = '';
+      document.getElementById('co-purpose').value = '';
+      showPage('list');
+    } else {
+      toast(res.error || '대여 처리에 실패했습니다.');
+    }
+  } catch (e) { toast('오류가 발생했습니다: ' + e.message); }
+  btn.textContent = '대여 시작'; btn.disabled = false;
+}
+
+// ══════════════════════════════
+// 내 대여 / 반납
+// ══════════════════════════════
+async function loadMyRentals() {
+  const name = document.getElementById('my-name').value.trim();
+  const contact = document.getElementById('my-contact').value.trim();
+  if (!name || !contact) { toast('이름과 연락처를 입력해주세요.'); return; }
+
+  document.getElementById('my-results').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const res = await api({ action: 'getMyRentals', name, contact });
+    if (!res.success) {
+      document.getElementById('my-results').innerHTML = '<div class="empty"><div class="empty-icon">📭</div>' + (res.error || '대여 내역이 없습니다.') + '</div>';
+      return;
+    }
+    const html = '<div class="card"><div class="card-title">현재 대여중 (' + res.data.length + '건)</div>' +
+      res.data.map(r => {
+        const isOverdue = r.status === '기한 초과';
+        const days = isOverdue ? overdueDays(r.dueDate) : 0;
+        return `<div class="my-row">
+          <div>
+            <div style="font-size:13px;font-weight:500">${r.equipName}</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:2px">대여일 ${r.rentedAt} · 반납 예정 ${r.dueDate} · 보관 위치 ${r.location}</div>
+          </div>
+          ${isOverdue ? `<span class="badge b-overdue">기한 초과 ${days}일</span>` : `<span class="badge b-rented">대여중</span>`}
+          <button class="btn btn-sm" onclick="openExtendModal('${r.rentalId}','${r.equipName}','${r.dueDate}','${name}','${contact}')">연장</button>
+          <button class="btn btn-primary btn-sm" onclick="doReturn('${r.rentalId}','${name}','${contact}','${r.location}')">반납하기</button>
+        </div>`;
+      }).join('') + '</div>';
+    document.getElementById('my-results').innerHTML = html;
+  } catch (e) { document.getElementById('my-results').innerHTML = '<div class="empty">오류: ' + e.message + '</div>'; }
+}
+
+async function doReturn(rentalId, name, contact, location) {
+  if (!confirm(`반납 처리하시겠습니까?\n기자재를 [${location}]에 반납 후 확인해주세요.`)) return;
+  try {
+    const res = await apiPost({ action: 'returnItem', rentalId, name, contact });
+    if (res.success) {
+      toast('반납 처리됐습니다. ' + location + '에 기자재를 반납해주세요!');
+      loadMyRentals();
+      loadEquipment();
+    } else { toast(res.error || '반납 처리 실패'); }
+  } catch (e) { toast('오류: ' + e.message); }
+}
+
+// ══════════════════════════════
+// 관리자 대시보드
+// ══════════════════════════════
+async function loadAdminDashboard() {
+  // 기자재 + 대여 현황
+  try {
+    const [eqRes, overdueRes] = await Promise.all([
+      api({ action: 'getEquipment' }),
+      api({ action: 'getOverdue' })
+    ]);
+
+    if (eqRes.success) {
+      equipmentData = eqRes.data;
+      document.getElementById('m-total').textContent = eqRes.data.length;
+      document.getElementById('m-rented').textContent = eqRes.data.filter(e => e.rentalStatus === '대여중' || e.rentalStatus === '기한 초과').length;
+      document.getElementById('m-avail').textContent = eqRes.data.filter(e => e.rentalStatus === '대여 가능').length;
+      renderAdminTable();
+    }
+
+    if (overdueRes.success) {
+      document.getElementById('m-overdue').textContent = overdueRes.data.length;
+      const html = overdueRes.data.length === 0
+        ? '<div class="empty" style="padding:16px">장기 미반납 없음</div>'
+        : overdueRes.data.map(r => `
+          <div class="alert-row" style="background:var(--red-bg)">
+            <span style="font-size:16px">⏰</span>
+            <span class="ar-name" style="color:var(--red)">${r.equipName} (${r.equipId}) — ${r.renter} · ${r.contact}</span>
+            <span class="ar-days" style="color:var(--red)">${r.overdueDays}일 초과</span>
+            <a href="mailto:${r.contact}" class="btn btn-sm btn-danger">연락하기</a>
+          </div>`).join('');
+      document.getElementById('overdue-list').innerHTML = html;
+    }
+  } catch (e) { toast('대시보드 로딩 실패: ' + e.message); }
+}
+
+function renderAdminTable() {
+  const q = (document.getElementById('admin-search')?.value || '').toLowerCase();
+  let data = equipmentData;
+  if (q) data = data.filter(e => e.name.toLowerCase().includes(q) || (e.code || '').toLowerCase().includes(q));
+
+  const statusBadge = (s) => ({ '대여 가능': '<span class="badge b-available">대여 가능</span>', '대여중': '<span class="badge b-rented">대여중</span>', '기한 초과': '<span class="badge b-overdue">기한 초과</span>', '대여 불가': '<span class="badge b-broken">대여 불가</span>' })[s] || '';
+
+  document.getElementById('admin-eq-body').innerHTML = data.map(e => {
+    const isOverdue = e.rentalStatus === '기한 초과';
+    const actionBtn = (e.rentalStatus === '대여중' || isOverdue)
+      ? `<button class="btn btn-sm ${isOverdue ? 'btn-danger' : ''}" onclick="doForceReturn('${e.currentRental?.rentalId}')">강제 반납</button>`
+      : `<button class="btn btn-sm" onclick='openEditModal(${e.id})'>수정</button>`;
+
+    return `<div class="admin-eq-row">
+      <span class="eq-no">${e.id}</span>
+      <div><div style="font-size:13px;font-weight:500">${e.name}</div><div class="eq-sub">${e.code || ''}</div></div>
+      <span class="badge b-loc">📍 ${e.location}</span>
+      <span style="font-size:12px">${e.currentRental ? e.currentRental.renter : '<span style="color:var(--text-3)">—</span>'}</span>
+      <span style="font-size:12px;${isOverdue ? 'color:var(--red);font-weight:500' : 'color:var(--text-2)'}">${e.currentRental ? fmt(e.currentRental.dueDate) : '—'}</span>
+      ${statusBadge(e.rentalStatus)}
+      ${actionBtn}
+    </div>`;
+  }).join('');
+}
+
+async function doForceReturn(rentalId) {
+  if (!rentalId) { toast('대여 정보를 찾을 수 없습니다.'); return; }
+  if (!confirm('강제 반납 처리하시겠습니까?')) return;
+  const res = await apiPost({ action: 'forceReturn', rentalId });
+  if (res.success) { toast('강제 반납 처리됐습니다.'); loadAdminDashboard(); }
+  else toast(res.error || '처리 실패');
+}
+
+// ══════════════════════════════
+// 기자재 추가
+// ══════════════════════════════
+let selectedPhotoBase64 = null;
+let selectedPhotoName = null;
+
+function onPhotoSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = e.target.result.split(',')[1];
+    selectedPhotoBase64 = base64;
+    selectedPhotoName = file.name;
+    const preview = document.getElementById('photo-preview-img');
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+    const zone = document.getElementById('upload-zone');
+    zone.classList.add('has-file');
+    zone.innerHTML = '✅ ' + file.name + ' 선택됨';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function doAddEquipment() {
+  const name = document.getElementById('add-name').value.trim();
+  const location = document.getElementById('add-location').value.trim();
+  if (!name || !location) { toast('기자재명과 보관 위치는 필수입니다.'); return; }
+
+  const btn = event.target;
+  btn.textContent = '추가 중...'; btn.disabled = true;
+
+  try {
+    // 먼저 기자재 추가
+    const res = await apiPost({
+      action: 'addEquipment',
+      name,
+      code: document.getElementById('add-code').value.trim(),
+      category: document.getElementById('add-category').value,
+      location,
+      condition: document.getElementById('add-condition').value,
+      note: document.getElementById('add-note').value.trim()
+    });
+
+    if (!res.success) { toast(res.error || '추가 실패'); btn.textContent = '추가'; btn.disabled = false; return; }
+
+    // 사진 업로드
+    if (selectedPhotoBase64) {
+      btn.textContent = '사진 업로드 중...';
+      await apiPost({ action: 'uploadPhoto', fileName: selectedPhotoName, fileBase64: selectedPhotoBase64, equipId: res.id });
+    }
+
+    toast('기자재가 추가됐습니다!');
+    // 폼 초기화
+    ['add-name','add-code','add-location','add-note'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('photo-preview-img').style.display = 'none';
+    document.getElementById('upload-zone').classList.remove('has-file');
+    document.getElementById('upload-zone').innerHTML = '<div style="font-size:24px;margin-bottom:6px">📷</div>클릭하여 사진 선택 (JPG / PNG)';
+    selectedPhotoBase64 = null;
+    showPage('admin');
+  } catch (e) { toast('오류: ' + e.message); }
+  btn.textContent = '추가'; btn.disabled = false;
+}
+
+// ══════════════════════════════
+// 관리자 로그인
+// ══════════════════════════════
+async function doLogin() {
+  const id = document.getElementById('login-id').value.trim();
+  const pw = document.getElementById('login-pw').value;
+  if (!id || !pw) { toast('아이디와 비밀번호를 입력해주세요.'); return; }
+
+  const res = await apiPost({ action: 'verifyAdmin', id, pw });
+  if (res.success) {
+    isAdmin = true;
+    document.getElementById('nav-admin').style.display = 'flex';
+    document.getElementById('nav-additem').style.display = 'flex';
+    document.getElementById('admin-login-btn').textContent = '관리자 모드 ON';
+    document.getElementById('admin-login-btn').style.background = 'var(--green)';
+    document.getElementById('admin-login-btn').onclick = () => showPage('admin');
+    toast('로그인 성공!');
+    showPage('admin');
+  } else {
+    toast(res.error || '로그인 실패');
+  }
+}
+
+function logoutAdmin() {
+  isAdmin = false;
+  document.getElementById('nav-admin').style.display = 'none';
+  document.getElementById('nav-additem').style.display = 'none';
+  document.getElementById('admin-login-btn').textContent = '관리자 로그인';
+  document.getElementById('admin-login-btn').style.background = '';
+  document.getElementById('admin-login-btn').onclick = () => showPage('login');
+  toast('로그아웃됐습니다.');
+  showPage('list');
+}
+
+// ── 초기 로딩 ──
+loadEquipment();
+</script>
+</body>
+</html>
+<script>
+// ══ 기자재 수정 모달 ══
+let editPhotoBase64 = null, editPhotoName = null;
+
+function openEditModal(id) {
+  const e = equipmentData.find(x => x.id == id);
+  if (!e) return;
+  document.getElementById('edit-id').value = e.id;
+  document.getElementById('edit-name').value = e.name;
+  document.getElementById('edit-code').value = e.code || '';
+  document.getElementById('edit-location').value = e.location || '';
+  document.getElementById('edit-condition').value = e.condition || '양호';
+  document.getElementById('edit-note').value = e.note || '';
+  const preview = document.getElementById('edit-photo-preview');
+  if (e.photoUrl) { preview.src = e.photoUrl; preview.style.display = 'block'; }
+  else { preview.style.display = 'none'; }
+  editPhotoBase64 = null; editPhotoName = null;
+  const zone = document.getElementById('edit-upload-zone');
+  zone.classList.remove('has-file');
+  zone.innerHTML = '<div style="font-size:20px;margin-bottom:4px">📷</div>클릭하여 새 사진 선택';
+  document.getElementById('edit-modal-overlay').classList.add('open');
+}
+function closeEditModal(ev) {
+  if (!ev || ev.target === document.getElementById('edit-modal-overlay'))
+    document.getElementById('edit-modal-overlay').classList.remove('open');
+}
+function onEditPhotoSelect(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    editPhotoBase64 = e.target.result.split(',')[1]; editPhotoName = file.name;
+    const preview = document.getElementById('edit-photo-preview');
+    preview.src = e.target.result; preview.style.display = 'block';
+    const zone = document.getElementById('edit-upload-zone');
+    zone.classList.add('has-file'); zone.innerHTML = '✅ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
+async function doEditEquipment() {
+  const id = document.getElementById('edit-id').value;
+  const location = document.getElementById('edit-location').value.trim();
+  const condition = document.getElementById('edit-condition').value;
+  const note = document.getElementById('edit-note').value.trim();
+  const today = new Date().toISOString().slice(0,10);
+  const btn = event.target; btn.textContent = '저장 중...'; btn.disabled = true;
+  try {
+    const res = await apiPost({ action: 'updateEquipment', id, location, condition, note, lastChecked: today });
+    if (res.success) {
+      if (editPhotoBase64) {
+        btn.textContent = '사진 업로드 중...';
+        await apiPost({ action: 'uploadPhoto', fileName: editPhotoName, fileBase64: editPhotoBase64, equipId: id });
+      }
+      toast('수정됐습니다!'); closeEditModal(); loadEquipment();
+      if (isAdmin) loadAdminDashboard();
+    } else toast(res.error || '수정 실패');
+  } catch(e) { toast('오류: ' + e.message); }
+  btn.textContent = '저장'; btn.disabled = false;
+}
+
+// ══ 대여 연장 모달 ══
+function openExtendModal(rentalId, equipName, dueDate, name, contact) {
+  document.getElementById('extend-rental-id').value = rentalId;
+  document.getElementById('extend-name-val').value = name || '';
+  document.getElementById('extend-contact-val').value = contact || '';
+  document.getElementById('extend-equip-info').innerHTML =
+    '<strong>' + equipName + '</strong><br>현재 반납 예정일: ' + dueDate;
+  document.getElementById('extend-due').value = dueDate;
+  document.getElementById('extend-modal-overlay').classList.add('open');
+}
+function closeExtendModal(ev) {
+  if (!ev || ev.target === document.getElementById('extend-modal-overlay'))
+    document.getElementById('extend-modal-overlay').classList.remove('open');
+}
+async function doExtend() {
+  const rentalId = document.getElementById('extend-rental-id').value;
+  const newDue = document.getElementById('extend-due').value;
+  const name = document.getElementById('extend-name-val').value;
+  const contact = document.getElementById('extend-contact-val').value;
+  if (!newDue) { toast('날짜를 선택해주세요.'); return; }
+  const btn = event.target; btn.textContent = '처리 중...'; btn.disabled = true;
+  try {
+    const res = await apiPost({ action: 'extendRental', rentalId, newDue, name, contact });
+    if (res.success) {
+      toast('반납일이 연장됐습니다!'); closeExtendModal();
+      if (name && contact) loadMyRentals();
+      if (isAdmin) loadAdminDashboard();
+    } else toast(res.error || '연장 실패');
+  } catch(e) { toast('오류: ' + e.message); }
+  btn.textContent = '연장 확정'; btn.disabled = false;
+}
+</script>
