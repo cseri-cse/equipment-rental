@@ -385,6 +385,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <div class="card" id="overdue-section" style="margin-bottom:16px">
     <div class="card-title">📞 장기 미반납 — 연락 필요</div>
     <div id="overdue-list"><div class="loading"><div class="spinner"></div></div></div>
+    <div class="pagination" id="overdue-pagination" style="display:none"></div>
   </div>
 
   <div class="card">
@@ -393,7 +394,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div style="display:flex;gap:8px">
         <div class="search-wrap" style="max-width:160px">
           <span class="search-icon">⌕</span>
-          <input type="text" id="admin-search" placeholder="검색..." oninput="renderAdminTable()">
+          <input type="text" id="admin-search" placeholder="검색..." oninput="adminEqPage=1;renderAdminTable()">
         </div>
         <button class="btn btn-sm btn-danger" id="bulk-delete-btn" onclick="doBulkDelete()" style="display:none">선택 삭제</button>
         <button class="btn btn-primary btn-sm" onclick="showPage('additem')">+ 기자재 추가</button>
@@ -404,6 +405,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <span>NO</span><span>기자재명</span><span>위치</span><span>대여자</span><span>반납 기한</span><span>현황</span><span>액션</span>
     </div>
     <div id="admin-eq-body"><div class="loading"><div class="spinner"></div></div></div>
+    <div class="pagination" id="admin-eq-pagination" style="display:none"></div>
   </div>
 </div>
 
@@ -984,19 +986,57 @@ async function loadAdminDashboard() {
     }
 
     if (overdueRes.success) {
-      document.getElementById('m-overdue').textContent = overdueRes.data.length;
-      const html = overdueRes.data.length === 0
-        ? '<div class="empty" style="padding:16px">장기 미반납 없음</div>'
-        : overdueRes.data.map(r => `
-          <div class="alert-row" style="background:var(--red-bg)">
-            <span style="font-size:16px">⏰</span>
-            <span class="ar-name" style="color:var(--red)">${r.equipName} (${r.equipId}) — ${r.renter} · ${r.contact}</span>
-            <span class="ar-days" style="color:var(--red)">${r.overdueDays}일 초과</span>
-            <a href="mailto:${r.contact}" class="btn btn-sm btn-danger">연락하기</a>
-          </div>`).join('');
-      document.getElementById('overdue-list').innerHTML = html;
+      overdueData = overdueRes.data;
+      adminOverduePage = 1;
+      document.getElementById('m-overdue').textContent = overdueData.length;
+      renderOverdueList();
     }
   } catch (e) { toast('대시보드 로딩 실패: ' + e.message); }
+}
+
+function goAdminEqPage(p) {
+  const total = Math.ceil(equipmentData.length / ADMIN_EQ_PAGE_SIZE);
+  if (p < 1 || p > total) return;
+  adminEqPage = p;
+  renderAdminTable();
+}
+
+function goAdminOverduePage(p) {
+  const total = Math.ceil(overdueData.length / ADMIN_OVERDUE_PAGE_SIZE);
+  if (p < 1 || p > total) return;
+  adminOverduePage = p;
+  renderOverdueList();
+}
+
+function renderOverdueList() {
+  const total = overdueData.length;
+  const totalPages = Math.ceil(total / ADMIN_OVERDUE_PAGE_SIZE);
+  const start = (adminOverduePage - 1) * ADMIN_OVERDUE_PAGE_SIZE;
+  const paged = overdueData.slice(start, start + ADMIN_OVERDUE_PAGE_SIZE);
+  const pg = document.getElementById('overdue-pagination');
+
+  if (!total) {
+    document.getElementById('overdue-list').innerHTML = '<div class="empty" style="padding:16px">장기 미반납 없음 🎉</div>';
+    pg.style.display = 'none';
+    return;
+  }
+
+  document.getElementById('overdue-list').innerHTML = paged.map(r => `
+    <div class="alert-row" style="background:var(--red-bg)">
+      <span style="font-size:16px">⏰</span>
+      <span class="ar-name" style="color:var(--red)">${r.equipName} (${r.equipId}) — ${r.renter} · ${r.contact}</span>
+      <span class="ar-days" style="color:var(--red)">${r.overdueDays}일 초과</span>
+      <a href="mailto:${r.contact}" class="btn btn-sm btn-danger">연락하기</a>
+    </div>`).join('');
+
+  if (totalPages <= 1) { pg.style.display = 'none'; return; }
+  pg.style.display = 'flex';
+  let html = `<button class="page-btn" onclick="goAdminOverduePage(${adminOverduePage-1})" ${adminOverduePage===1?'disabled':''}>‹</button>`;
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button class="page-btn ${i===adminOverduePage?'active':''}" onclick="goAdminOverduePage(${i})">${i}</button>`;
+  }
+  html += `<button class="page-btn" onclick="goAdminOverduePage(${adminOverduePage+1})" ${adminOverduePage===totalPages?'disabled':''}>›</button>`;
+  pg.innerHTML = html;
 }
 
 function renderAdminTable() {
@@ -1004,9 +1044,27 @@ function renderAdminTable() {
   let data = equipmentData;
   if (q) data = data.filter(e => e.name.toLowerCase().includes(q) || (e.code || '').toLowerCase().includes(q));
 
+  const total = data.length;
+  const totalPages = Math.ceil(total / ADMIN_EQ_PAGE_SIZE);
+  const start = (adminEqPage - 1) * ADMIN_EQ_PAGE_SIZE;
+  const paged = data.slice(start, start + ADMIN_EQ_PAGE_SIZE);
+  const pg = document.getElementById('admin-eq-pagination');
+
+  // 페이지네이션 렌더
+  if (totalPages <= 1) { pg.style.display = 'none'; }
+  else {
+    pg.style.display = 'flex';
+    let html = `<button class="page-btn" onclick="goAdminEqPage(${adminEqPage-1})" ${adminEqPage===1?'disabled':''}>‹</button>`;
+    for (let i = 1; i <= totalPages; i++) {
+      html += `<button class="page-btn ${i===adminEqPage?'active':''}" onclick="goAdminEqPage(${i})">${i}</button>`;
+    }
+    html += `<button class="page-btn" onclick="goAdminEqPage(${adminEqPage+1})" ${adminEqPage===totalPages?'disabled':''}>›</button>`;
+    pg.innerHTML = html;
+  }
+
   const statusBadge = (s) => ({ '대여 가능': '<span class="badge b-available">대여 가능</span>', '대여중': '<span class="badge b-rented">대여중</span>', '기한 초과': '<span class="badge b-overdue">기한 초과</span>', '대여 불가': '<span class="badge b-broken">대여 불가</span>' })[s] || '';
 
-  document.getElementById('admin-eq-body').innerHTML = data.map(e => {
+  document.getElementById('admin-eq-body').innerHTML = paged.map(e => {
     const isOverdue = e.rentalStatus === '기한 초과';
     const actionBtn = (e.rentalStatus === '대여중' || isOverdue)
       ? `<button class="btn btn-sm ${isOverdue ? 'btn-danger' : ''}" onclick="doForceReturn('${e.currentRental?.rentalId}')">강제 반납</button>`
