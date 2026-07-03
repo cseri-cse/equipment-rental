@@ -970,27 +970,35 @@ async function doReturn(rentalId, name, contact, location) {
 // 관리자 대시보드
 // ══════════════════════════════
 async function loadAdminDashboard() {
-  // 기자재 + 대여 현황
   try {
-    const [eqRes, overdueRes] = await Promise.all([
-      api({ action: 'getEquipment' }),
-      api({ action: 'getOverdue' })
-    ]);
-
+    // 1. 기자재 목록 먼저 로드
+    const eqRes = await api({ action: 'getEquipment' });
     if (eqRes.success) {
       equipmentData = eqRes.data;
+      adminEqPage = 1;
       document.getElementById('m-total').textContent = eqRes.data.length;
       document.getElementById('m-rented').textContent = eqRes.data.filter(e => e.rentalStatus === '대여중' || e.rentalStatus === '기한 초과').length;
       document.getElementById('m-avail').textContent = eqRes.data.filter(e => e.rentalStatus === '대여 가능').length;
       renderAdminTable();
     }
 
-    if (overdueRes.success) {
-      overdueData = overdueRes.data;
-      adminOverduePage = 1;
-      document.getElementById('m-overdue').textContent = overdueData.length;
-      renderOverdueList();
-    }
+    // 2. 미반납 목록 - getEquipment 데이터에서 필터링 (별도 API 호출 없음)
+    const today = new Date();
+    overdueData = eqRes.data
+      .filter(e => e.currentRental && (e.rentalStatus === '기한 초과'))
+      .map(e => ({
+        equipId: e.id,
+        equipName: e.name,
+        renter: e.currentRental.renter,
+        contact: e.currentRental.contact,
+        dueDate: e.currentRental.dueDate,
+        overdueDays: Math.floor((today - new Date(e.currentRental.dueDate)) / 86400000),
+        rentalId: e.currentRental.rentalId
+      }))
+      .sort((a, b) => b.overdueDays - a.overdueDays);
+    adminOverduePage = 1;
+    document.getElementById('m-overdue').textContent = overdueData.length;
+    renderOverdueList();
   } catch (e) { toast('대시보드 로딩 실패: ' + e.message); }
 }
 
