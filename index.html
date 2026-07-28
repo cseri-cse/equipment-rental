@@ -437,7 +437,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="page-title">관리자 대시보드</div>
       <div class="page-sub" style="margin:0">기자재 현황 · 장기 미반납 · 정기 검수</div>
     </div>
-    <button class="btn btn-sm" onclick="logoutAdmin()">로그아웃</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="dropdown" id="mail-dropdown">
+        <button class="btn btn-sm" onclick="toggleMailDropdown()">📧 알림 메일 발송 ▾</button>
+        <div class="dropdown-menu" id="mail-dropdown-menu">
+          <button class="dropdown-item" onclick="sendMailByType('before3')">📅 반납 3일 전 안내</button>
+          <button class="dropdown-item" onclick="sendMailByType('today')">🔔 반납 당일 안내</button>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item" onclick="sendMailByType('overdue')" style="color:var(--red)">⚠️ 기한 초과 안내</button>
+        </div>
+      </div>
+      <button class="btn btn-sm" onclick="logoutAdmin()">로그아웃</button>
+    </div>
   </div>
   <div class="metrics" id="admin-metrics">
     <div class="metric"><div class="metric-label">전체 기자재</div><div class="metric-value" id="m-total">—</div></div>
@@ -447,7 +458,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   </div>
 
   <div class="card" id="overdue-section" style="margin-bottom:16px">
-    <div class="card-title">📞 장기 미반납 — 연락 필요</div>
+    <div class="card-title">👥 대여자 현황</div>
     <div id="overdue-list"><div class="loading"><div class="spinner"></div></div></div>
     <div class="pagination" id="overdue-pagination" style="display:none"></div>
   </div>
@@ -1096,25 +1107,58 @@ function goAdminOverduePage(p) {
 }
 
 function renderOverdueList() {
-  const total = overdueData.length;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  // 전체 대여중 목록 생성 (기한초과/3일전/일반)
+  const allRenters = equipmentData
+    .filter(e => e.currentRental && (e.rentalStatus === '대여중' || e.rentalStatus === '기한 초과'))
+    .map(e => {
+      const due = new Date(e.currentRental.dueDate);
+      due.setHours(0,0,0,0);
+      const diff = Math.round((due - today) / 86400000);
+      let type = 'normal';
+      if (diff < 0) type = 'overdue';
+      else if (diff <= 3) type = 'soon';
+      return { ...e.currentRental, equipName: e.name, equipId: e.id, diff, type, dueDate: e.currentRental.dueDate };
+    })
+    .sort((a,b) => a.diff - b.diff);
+
+  const total = allRenters.length;
   const totalPages = Math.ceil(total / ADMIN_OVERDUE_PAGE_SIZE);
   const start = (adminOverduePage - 1) * ADMIN_OVERDUE_PAGE_SIZE;
-  const paged = overdueData.slice(start, start + ADMIN_OVERDUE_PAGE_SIZE);
+  const paged = allRenters.slice(start, start + ADMIN_OVERDUE_PAGE_SIZE);
   const pg = document.getElementById('overdue-pagination');
 
   if (!total) {
-    document.getElementById('overdue-list').innerHTML = '<div class="empty" style="padding:16px">장기 미반납 없음 🎉</div>';
+    document.getElementById('overdue-list').innerHTML = '<div class="empty" style="padding:16px">현재 대여중인 기자재가 없습니다</div>';
     pg.style.display = 'none';
     return;
   }
 
-  document.getElementById('overdue-list').innerHTML = paged.map(r => `
-    <div class="alert-row" style="background:var(--red-bg)">
-      <span style="font-size:16px">⏰</span>
-      <span class="ar-name" style="color:var(--red)">${r.equipName} (${r.equipId}) — ${r.renter} · ${r.contact}</span>
-      <span class="ar-days" style="color:var(--red)">${r.overdueDays}일 초과</span>
-      <button class="btn btn-sm btn-danger" onclick="sendOverdueMail('${r.rentalId}','${r.equipName}','${r.renter}','${r.contact}','${r.dueDate}',${r.overdueDays})">📧 메일 발송</button>
-    </div>`).join('');
+  const typeStyle = {
+    overdue: { bg: '#FCEBEB', color: '#A32D2D', icon: '⏰', label: (r) => `${Math.abs(r.diff)}일 초과` },
+    soon:    { bg: '#FAEEDA', color: '#854F0B', icon: '📅', label: (r) => r.diff === 0 ? '오늘 반납' : `${r.diff}일 후 반납` },
+    normal:  { bg: '#E6F1FB', color: '#185FA5', icon: '📦', label: (r) => `${r.diff}일 후 반납` }
+  };
+
+  document.getElementById('overdue-list').innerHTML = paged.map((r, idx) => {
+    const s = typeStyle[r.type];
+    return `<div class="alert-row" style="background:${s.bg};position:relative">
+      <span style="font-size:16px">${s.icon}</span>
+      <span class="ar-name" style="color:${s.color};flex:1">${r.equipName} — ${r.renter} · ${r.contact}</span>
+      <span class="ar-days" style="color:${s.color};white-space:nowrap;margin-right:8px">${s.label(r)}</span>
+      <div class="dropdown" style="position:relative">
+        <button class="btn btn-sm" style="border-color:${s.color};color:${s.color};font-size:11px" onclick="toggleRenterMailDropdown('renter-dd-${idx}')">📧 ▾</button>
+        <div class="dropdown-menu" id="renter-dd-${idx}">
+          <button class="dropdown-item" onclick="sendRenterMail('${r.rentalId}','before3');closeRenterDD('renter-dd-${idx}')">📅 반납 3일 전 안내</button>
+          <button class="dropdown-item" onclick="sendRenterMail('${r.rentalId}','today');closeRenterDD('renter-dd-${idx}')">🔔 반납 당일 안내</button>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item" style="color:var(--red)" onclick="sendRenterMail('${r.rentalId}','overdue');closeRenterDD('renter-dd-${idx}')">⚠️ 기한 초과 안내</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 
   if (totalPages <= 1) { pg.style.display = 'none'; return; }
   pg.style.display = 'flex';
@@ -1343,6 +1387,28 @@ async function sendOverdueMail(rentalId, equipName, renter, contact, dueDate, ov
   try {
     const res = await apiPost({ action: 'sendMailByType', mailType: 'overdue', rentalId });
     if (res.success) toast(`✅ ${renter}님에게 메일이 발송됐습니다.`);
+    else toast(res.error || '발송 실패');
+  } catch(e) { toast('오류: ' + e.message); }
+}
+
+// ── 대여자별 메일 드롭다운 ──
+function toggleRenterMailDropdown(id) {
+  // 다른 드롭다운 닫기
+  document.querySelectorAll('.dropdown-menu').forEach(m => {
+    if (m.id !== id) m.classList.remove('open');
+  });
+  document.getElementById(id).classList.toggle('open');
+}
+function closeRenterDD(id) {
+  document.getElementById(id)?.classList.remove('open');
+}
+
+async function sendRenterMail(rentalId, mailType) {
+  const labels = { before3: '반납 3일 전 안내', today: '반납 당일 안내', overdue: '기한 초과 안내' };
+  if (!confirm(`"${labels[mailType]}" 메일을 발송하시겠습니까?`)) return;
+  try {
+    const res = await apiPost({ action: 'sendMailByType', mailType, rentalId });
+    if (res.success) toast('✅ 메일이 발송됐습니다.');
     else toast(res.error || '발송 실패');
   } catch(e) { toast('오류: ' + e.message); }
 }
