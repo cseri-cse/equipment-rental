@@ -1111,7 +1111,8 @@ function goAdminEqPage(p) {
 }
 
 function goAdminOverduePage(p) {
-  const total = Math.ceil(overdueData.length / ADMIN_OVERDUE_PAGE_SIZE);
+  const allRenters = equipmentData.filter(e => e.currentRental && (e.rentalStatus === '대여중' || e.rentalStatus === '기한 초과'));
+  const total = Math.ceil(allRenters.length / ADMIN_OVERDUE_PAGE_SIZE);
   if (p < 1 || p > total) return;
   adminOverduePage = p;
   renderOverdueList();
