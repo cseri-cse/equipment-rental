@@ -437,18 +437,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="page-title">관리자 대시보드</div>
       <div class="page-sub" style="margin:0">기자재 현황 · 장기 미반납 · 정기 검수</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <div class="dropdown" id="mail-dropdown">
-        <button class="btn btn-sm" onclick="toggleMailDropdown()">📧 알림 메일 발송 ▾</button>
-        <div class="dropdown-menu" id="mail-dropdown-menu">
-          <button class="dropdown-item" onclick="sendMailByType('before3')">📅 반납 3일 전 안내</button>
-          <button class="dropdown-item" onclick="sendMailByType('today')">🔔 반납 당일 안내</button>
-          <div class="dropdown-divider"></div>
-          <button class="dropdown-item" onclick="sendMailByType('overdue')" style="color:var(--red)">⚠️ 기한 초과 안내</button>
-        </div>
-      </div>
-      <button class="btn btn-sm" onclick="logoutAdmin()">로그아웃</button>
-    </div>
+    <button class="btn btn-sm" onclick="logoutAdmin()">로그아웃</button>
   </div>
   <div class="metrics" id="admin-metrics">
     <div class="metric"><div class="metric-label">전체 기자재</div><div class="metric-value" id="m-total">—</div></div>
