@@ -809,7 +809,18 @@ function renderPagination(total, pageSize) {
   if (totalPages <= 1) { pg.style.display = 'none'; return; }
   pg.style.display = 'flex';
   let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
-  for (let i = 1; i <= totalPages; i++) {
+  // 앞 2페이지
+  for (let i = 1; i <= Math.min(2, totalPages); i++) {
+    html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  if (currentPage > 4) html += `<span class="page-btn" style="border:none;cursor:default">…</span>`;
+  // 현재 페이지 주변
+  for (let i = Math.max(3, currentPage-1); i <= Math.min(totalPages-2, currentPage+1); i++) {
+    html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  if (currentPage < totalPages - 3) html += `<span class="page-btn" style="border:none;cursor:default">…</span>`;
+  // 뒤 2페이지
+  for (let i = Math.max(totalPages-1, 3); i <= totalPages; i++) {
     html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
   }
   html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
@@ -1163,7 +1174,15 @@ function renderOverdueList() {
   if (totalPages <= 1) { pg.style.display = 'none'; return; }
   pg.style.display = 'flex';
   let html = `<button class="page-btn" onclick="goAdminOverduePage(${adminOverduePage-1})" ${adminOverduePage===1?'disabled':''}>‹</button>`;
-  for (let i = 1; i <= totalPages; i++) {
+  for (let i = 1; i <= Math.min(2, totalPages); i++) {
+    html += `<button class="page-btn ${i===adminOverduePage?'active':''}" onclick="goAdminOverduePage(${i})">${i}</button>`;
+  }
+  if (adminOverduePage > 4) html += `<span class="page-btn" style="border:none;cursor:default">…</span>`;
+  for (let i = Math.max(3, adminOverduePage-1); i <= Math.min(totalPages-2, adminOverduePage+1); i++) {
+    html += `<button class="page-btn ${i===adminOverduePage?'active':''}" onclick="goAdminOverduePage(${i})">${i}</button>`;
+  }
+  if (adminOverduePage < totalPages - 3) html += `<span class="page-btn" style="border:none;cursor:default">…</span>`;
+  for (let i = Math.max(totalPages-1, 3); i <= totalPages; i++) {
     html += `<button class="page-btn ${i===adminOverduePage?'active':''}" onclick="goAdminOverduePage(${i})">${i}</button>`;
   }
   html += `<button class="page-btn" onclick="goAdminOverduePage(${adminOverduePage+1})" ${adminOverduePage===totalPages?'disabled':''}>›</button>`;
@@ -1186,7 +1205,15 @@ function renderAdminTable() {
   else {
     pg.style.display = 'flex';
     let html = `<button class="page-btn" onclick="goAdminEqPage(${adminEqPage-1})" ${adminEqPage===1?'disabled':''}>‹</button>`;
-    for (let i = 1; i <= totalPages; i++) {
+    for (let i = 1; i <= Math.min(2, totalPages); i++) {
+      html += `<button class="page-btn ${i===adminEqPage?'active':''}" onclick="goAdminEqPage(${i})">${i}</button>`;
+    }
+    if (adminEqPage > 4) html += `<span class="page-btn" style="border:none;cursor:default">…</span>`;
+    for (let i = Math.max(3, adminEqPage-1); i <= Math.min(totalPages-2, adminEqPage+1); i++) {
+      html += `<button class="page-btn ${i===adminEqPage?'active':''}" onclick="goAdminEqPage(${i})">${i}</button>`;
+    }
+    if (adminEqPage < totalPages - 3) html += `<span class="page-btn" style="border:none;cursor:default">…</span>`;
+    for (let i = Math.max(totalPages-1, 3); i <= totalPages; i++) {
       html += `<button class="page-btn ${i===adminEqPage?'active':''}" onclick="goAdminEqPage(${i})">${i}</button>`;
     }
     html += `<button class="page-btn" onclick="goAdminEqPage(${adminEqPage+1})" ${adminEqPage===totalPages?'disabled':''}>›</button>`;
