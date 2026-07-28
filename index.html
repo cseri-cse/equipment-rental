@@ -192,25 +192,81 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .page-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
 .page-btn:disabled { opacity: 0.35; cursor: default; }
 
+/* ── 모바일 햄버거 버튼 ── */
+.hamburger { display: none; position: fixed; top: 14px; left: 14px; z-index: 50; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 36px; height: 36px; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; }
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 9; }
+.sidebar-overlay.open { display: block; }
+
 /* ── 반응형 ── */
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); transition: transform 0.2s; }
-  .sidebar.open { transform: translateX(0); }
-  .main { margin-left: 0; padding: 16px; }
-  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .hamburger { display: flex; }
+  .sidebar { transform: translateX(-100%); transition: transform 0.25s ease; z-index: 20; }
+  .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.15); }
+  .main { margin-left: 0; padding: 16px; padding-top: 56px; }
+
+  /* 메트릭 */
+  .metrics { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .metric-value { font-size: 20px; }
+
+  /* 폼 */
   .form-grid { grid-template-columns: 1fr; }
-  .eq-head, .eq-row { grid-template-columns: 36px 1fr 80px 90px; }
-  .eq-head span:nth-child(3), .eq-row > *:nth-child(3),
+
+  /* 기자재 목록 테이블 - 보관위치/대여정보 숨김 */
+  .eq-head { grid-template-columns: 28px 1fr 70px 90px 60px !important; }
+  .eq-row { grid-template-columns: 28px 1fr 70px 90px 60px !important; }
+  .eq-head span:nth-child(4), .eq-row > *:nth-child(4),
   .eq-head span:nth-child(5), .eq-row > *:nth-child(5) { display: none; }
+
+  /* 관리자 테이블 */
+  .admin-eq-head { grid-template-columns: 28px 28px 1fr 80px 100px 120px !important; }
+  .admin-eq-row { grid-template-columns: 28px 28px 1fr 80px 100px 120px !important; }
+  .admin-eq-head span:nth-child(4),
+  .admin-eq-row > *:nth-child(4),
+  .admin-eq-head span:nth-child(5),
+  .admin-eq-row > *:nth-child(5) { display: none; }
+
+  /* 플로우 배너 */
+  .flow-bar { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .flow-arrow { transform: rotate(90deg); }
+
+  /* 카드 */
+  .card { padding: 14px; }
+
+  /* 알림 행 */
+  .alert-row { flex-wrap: wrap; gap: 6px; }
+
+  /* 검수 행 */
+  .inspect-row { flex-wrap: wrap; gap: 6px; }
+
+  /* 페이지네이션 */
+  .pagination { flex-wrap: wrap; }
+  .page-btn { width: 28px; height: 28px; font-size: 12px; }
+
+  /* 툴바 */
+  .toolbar { flex-direction: column; align-items: flex-start; }
+  .search-wrap { max-width: 100% !important; }
+
+  /* 모달 */
+  .modal { padding: 16px; }
+
+  /* nav-sub 여백 */
+  .nav-sub { padding-left: 30px !important; }
+
+  /* 안내문 테이블 */
+  .page-guide table { font-size: 12px; }
 }
 </style>
 </head>
 <body>
 
+<!-- 햄버거 버튼 (모바일) -->
+<button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="메뉴">☰</button>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
 <div class="app">
 <!-- ── 사이드바 ── -->
 <aside class="sidebar" id="sidebar">
-  <div class="logo">
+  <div class="logo" onclick="showPage('guide')" style="cursor:pointer" title="이용 안내">
     <div class="logo-title">기자재 대여</div>
     <div class="logo-sub">미융기/융보공 대학원 기자재 대여 관리</div>
   </div>
@@ -864,11 +920,19 @@ function openPhotoModal(id) {
   `;
 
   const btn = document.getElementById('pm-checkout-btn');
+  btn.style.display = 'block';
   if (e.rentalStatus === '대여 가능') {
-    btn.style.display = 'block';
+    btn.textContent = '이 기자재 대여하기';
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    btn.disabled = false;
     btn.onclick = () => { closePhotoModal(); quickCheckout(e.id, e.name); };
   } else {
-    btn.style.display = 'none';
+    btn.textContent = e.rentalStatus === '대여중' ? '현재 대여중입니다' : e.rentalStatus === '기한 초과' ? '반납 기한 초과 중입니다' : '대여 불가';
+    btn.style.opacity = '0.45';
+    btn.style.cursor = 'default';
+    btn.disabled = true;
+    btn.onclick = null;
   }
 
   document.getElementById('photo-modal-overlay').classList.add('open');
@@ -907,6 +971,8 @@ async function doCheckout() {
   const purpose = document.getElementById('co-purpose').value.trim();
 
   if (!equipId || !renter || !contact || !dueDate) { toast('필수 항목을 모두 입력해주세요.'); return; }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(contact)) { toast('올바른 이메일 주소를 입력해주세요.'); return; }
 
   const btn = event.target;
   btn.textContent = '처리 중...'; btn.disabled = true;
@@ -1262,6 +1328,25 @@ async function doDeleteEquipment(id, name) {
     else toast(res.error || '삭제 실패');
   } catch(e) { toast('오류: ' + e.message); }
 }
+
+// ── 모바일 사이드바 ──
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+// nav-item 클릭 시 모바일에서 사이드바 닫기
+document.querySelectorAll('.nav-item').forEach(n => {
+  n.addEventListener('click', () => {
+    if (window.innerWidth <= 768) closeSidebar();
+  });
+});
 
 // ── 초기 로딩 ──
 document.getElementById('nav-cat-기자재').classList.add('active');
