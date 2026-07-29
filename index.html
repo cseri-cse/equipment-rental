@@ -1425,20 +1425,22 @@ async function sendRenterMail(rentalId, mailType) {
 
 // ── 드래그앤드롭 업로드 ──
 function initDropZone(zoneId, fileInputId, previewId, onSelect) {
-  if (!document.getElementById(zoneId)) return;
-  document.getElementById(zoneId).addEventListener('dragover', (e) => {
+  const el = document.getElementById(zoneId);
+  if (!el) return;
+  // 이미 등록된 이벤트 방지
+  el.ondragover = (e) => {
     e.preventDefault();
-    zone.classList.add('drag-over');
-  });
-  zoneEl.addEventListener('dragleave', () => {
-    zone.classList.remove('drag-over');
-  });
-  zoneEl.addEventListener('drop', (e) => {
+    el.classList.add('drag-over');
+  };
+  el.ondragleave = () => {
+    el.classList.remove('drag-over');
+  };
+  el.ondrop = (e) => {
     e.preventDefault();
-    zone.classList.remove('drag-over');
+    el.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
     if (file) handlePhotoFile(file, zoneId, previewId, onSelect);
-  });
+  };
 }
 
 function handlePhotoFile(file, zoneId, previewId, onSelect) {
