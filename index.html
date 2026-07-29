@@ -1250,9 +1250,8 @@ function onPhotoSelect(event) {
     const preview = document.getElementById('photo-preview-img');
     preview.src = e.target.result;
     preview.style.display = 'block';
-    let zoneEl = document.getElementById('upload-zone');
-    zoneEl.classList.add('has-file');
-    zoneEl.innerHTML = '✅ ' + file.name + ' 선택됨';
+    document.getElementById('upload-zone').classList.add('has-file');
+    document.getElementById('upload-zone').innerHTML = '✅ ' + file.name + ' 선택됨';
   };
   reader.readAsDataURL(file);
 }
@@ -1426,10 +1425,8 @@ async function sendRenterMail(rentalId, mailType) {
 
 // ── 드래그앤드롭 업로드 ──
 function initDropZone(zoneId, fileInputId, previewId, onSelect) {
-  let zoneEl = document.getElementById(zoneId);
-  if (!zoneEl) return;
-
-  zoneEl.addEventListener('dragover', (e) => {
+  if (!document.getElementById(zoneId)) return;
+  document.getElementById(zoneId).addEventListener('dragover', (e) => {
     e.preventDefault();
     zone.classList.add('drag-over');
   });
@@ -1452,8 +1449,7 @@ function handlePhotoFile(file, zoneId, previewId, onSelect) {
     const base64 = e.target.result.split(',')[1];
     const preview = document.getElementById(previewId);
     if (preview) { preview.src = e.target.result; preview.style.display = 'block'; }
-    let zoneEl = document.getElementById(zoneId);
-    if (zoneEl) { zoneEl.classList.add('has-file'); zoneEl.innerHTML = '✅ ' + file.name; }
+    if (document.getElementById(zoneId)) { document.getElementById(zoneId).classList.add('has-file'); document.getElementById(zoneId).innerHTML = '✅ ' + file.name; }
     onSelect(base64, file.name);
   };
   reader.readAsDataURL(file);
@@ -1507,21 +1503,19 @@ function openEditModal(id) {
   document.getElementById('edit-condition').value = e.condition || '양호';
   document.getElementById('edit-note').value = e.note || '';
   const preview = document.getElementById('edit-photo-preview');
-  let zoneEl = document.getElementById('edit-upload-zone');
   if (e.photoUrl) { 
     preview.src = e.photoUrl; 
     preview.style.display = 'block';
-    editZone.innerHTML = '✅ 기존 사진 등록됨 (새 사진 선택 시 교체)';
-    editZone.classList.add('has-file');
+    document.getElementById('edit-upload-zone').innerHTML = '✅ 기존 사진 등록됨 (새 사진 선택 시 교체)';
+    document.getElementById('edit-upload-zone').classList.add('has-file');
   } else { 
     preview.style.display = 'none';
-    editZone.classList.remove('has-file');
-    editZone.innerHTML = '<div style="font-size:20px;margin-bottom:4px">📷</div>클릭하여 새 사진 선택';
+    document.getElementById('edit-upload-zone').classList.remove('has-file');
+    document.getElementById('edit-upload-zone').innerHTML = '<div style="font-size:20px;margin-bottom:4px">📷</div>클릭하여 새 사진 선택';
   }
   editPhotoBase64 = null; editPhotoName = null;
-  let zoneEl = document.getElementById('edit-upload-zone');
-  zoneEl.classList.remove('has-file');
-  zoneEl.one.innerHTML = '<div style="font-size:20px;margin-bottom:4px">📷</div>클릭하여 새 사진 선택';
+  document.getElementById('edit-upload-zone').classList.remove('has-file');
+  document.getElementById('edit-upload-zone').innerHTML = '<div style="font-size:20px;margin-bottom:4px">📷</div>클릭하여 새 사진 선택';
   document.getElementById('edit-modal-overlay').classList.add('open');
 }
 function closeEditModal(ev) {
@@ -1535,8 +1529,7 @@ function onEditPhotoSelect(event) {
     editPhotoBase64 = e.target.result.split(',')[1]; editPhotoName = file.name;
     const preview = document.getElementById('edit-photo-preview');
     preview.src = e.target.result; preview.style.display = 'block';
-    let zoneEl = document.getElementById('edit-upload-zone');
-    zoneEl.classList.add('has-file'); zoneEl.innerHTML = '✅ ' + file.name;
+    document.getElementById('edit-upload-zone').classList.add('has-file'); document.getElementById('edit-upload-zone').innerHTML = '✅ ' + file.name;
   };
   reader.readAsDataURL(file);
 }
