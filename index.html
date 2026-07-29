@@ -1250,7 +1250,7 @@ function onPhotoSelect(event) {
     const preview = document.getElementById('photo-preview-img');
     preview.src = e.target.result;
     preview.style.display = 'block';
-    const zoneEl = document.getElementById('upload-zone');
+    let zoneEl = document.getElementById('upload-zone');
     zoneEl.classList.add('has-file');
     zoneEl.innerHTML = '✅ ' + file.name + ' 선택됨';
   };
@@ -1426,7 +1426,7 @@ async function sendRenterMail(rentalId, mailType) {
 
 // ── 드래그앤드롭 업로드 ──
 function initDropZone(zoneId, fileInputId, previewId, onSelect) {
-  const zoneEl = document.getElementById(zoneId);
+  let zoneEl = document.getElementById(zoneId);
   if (!zoneEl) return;
 
   zoneEl.addEventListener('dragover', (e) => {
@@ -1452,7 +1452,7 @@ function handlePhotoFile(file, zoneId, previewId, onSelect) {
     const base64 = e.target.result.split(',')[1];
     const preview = document.getElementById(previewId);
     if (preview) { preview.src = e.target.result; preview.style.display = 'block'; }
-    const zoneEl = document.getElementById(zoneId);
+    let zoneEl = document.getElementById(zoneId);
     if (zoneEl) { zoneEl.classList.add('has-file'); zoneEl.innerHTML = '✅ ' + file.name; }
     onSelect(base64, file.name);
   };
@@ -1507,7 +1507,7 @@ function openEditModal(id) {
   document.getElementById('edit-condition').value = e.condition || '양호';
   document.getElementById('edit-note').value = e.note || '';
   const preview = document.getElementById('edit-photo-preview');
-  const zoneEl = document.getElementById('edit-upload-zone');
+  let zoneEl = document.getElementById('edit-upload-zone');
   if (e.photoUrl) { 
     preview.src = e.photoUrl; 
     preview.style.display = 'block';
@@ -1519,7 +1519,7 @@ function openEditModal(id) {
     editZone.innerHTML = '<div style="font-size:20px;margin-bottom:4px">📷</div>클릭하여 새 사진 선택';
   }
   editPhotoBase64 = null; editPhotoName = null;
-  const zoneEl = document.getElementById('edit-upload-zone');
+  let zoneEl = document.getElementById('edit-upload-zone');
   zoneEl.classList.remove('has-file');
   zoneEl.one.innerHTML = '<div style="font-size:20px;margin-bottom:4px">📷</div>클릭하여 새 사진 선택';
   document.getElementById('edit-modal-overlay').classList.add('open');
@@ -1535,7 +1535,7 @@ function onEditPhotoSelect(event) {
     editPhotoBase64 = e.target.result.split(',')[1]; editPhotoName = file.name;
     const preview = document.getElementById('edit-photo-preview');
     preview.src = e.target.result; preview.style.display = 'block';
-    const zoneEl = document.getElementById('edit-upload-zone');
+    let zoneEl = document.getElementById('edit-upload-zone');
     zoneEl.classList.add('has-file'); zoneEl.innerHTML = '✅ ' + file.name;
   };
   reader.readAsDataURL(file);
