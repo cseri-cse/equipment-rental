@@ -1517,6 +1517,12 @@ function openEditModal(id) {
   document.getElementById('edit-upload-zone').classList.remove('has-file');
   document.getElementById('edit-upload-zone').innerHTML = '<div style="font-size:20px;margin-bottom:4px">📷</div>클릭하여 새 사진 선택';
   document.getElementById('edit-modal-overlay').classList.add('open');
+  // 모달 열릴 때마다 드롭존 초기화
+  setTimeout(() => {
+    initDropZone('edit-upload-zone', 'edit-photo-file', 'edit-photo-preview', (base64, name) => {
+      editPhotoBase64 = base64; editPhotoName = name;
+    });
+  }, 50);
 }
 function closeEditModal(ev) {
   if (!ev || ev.target === document.getElementById('edit-modal-overlay'))
