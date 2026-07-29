@@ -147,9 +147,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .modal-close { background: none; border: none; cursor: pointer; color: var(--text-3); font-size: 18px; line-height: 1; padding: 2px; }
 
 /* ── 사진 업로드 존 ── */
-.upload-zone { border: 1.5px dashed var(--border-strong); border-radius: var(--radius); padding: 28px; text-align: center; cursor: pointer; color: var(--text-3); font-size: 13px; transition: border-color 0.15s; }
+.upload-zone { border: 1.5px dashed var(--border-strong); border-radius: var(--radius); padding: 28px; text-align: center; cursor: pointer; color: var(--text-3); font-size: 13px; transition: border-color 0.15s, background 0.15s; }
 .upload-zone:hover { border-color: var(--blue); color: var(--blue); }
 .upload-zone.has-file { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+.upload-zone.drag-over { border-color: var(--blue); background: var(--blue-bg); color: var(--blue-text); }
 .photo-preview { width: 100%; height: 200px; object-fit: contain; border-radius: var(--radius); background: var(--bg); border: 1px solid var(--border); margin-bottom: 12px; }
 
 /* ── 로딩 ── */
@@ -1214,7 +1215,7 @@ function renderAdminTable() {
   document.getElementById('admin-eq-body').innerHTML = paged.map(e => {
     const isOverdue = e.rentalStatus === '기한 초과';
     const actionBtn = (e.rentalStatus === '대여중' || isOverdue)
-      ? `<div style="display:flex;gap:4px"><button class="btn btn-sm ${isOverdue ? 'btn-danger' : ''}" onclick="doForceReturn('${e.currentRental?.rentalId}')">강제 반납</button><button class="btn btn-sm btn-danger" onclick='doDeleteEquipment(${e.id},"${e.name}")'>삭제</button></div>`
+      ? `<div style="display:flex;gap:4px"><button class="btn btn-sm ${isOverdue ? 'btn-danger' : ''}" onclick="doForceReturn('${e.currentRental?.rentalId}')">강제 반납</button><button class="btn btn-sm" onclick='openEditModal(${e.id})'>수정</button><button class="btn btn-sm btn-danger" onclick='doDeleteEquipment(${e.id},"${e.name}")'>삭제</button></div>`
       : `<div style="display:flex;gap:4px"><button class="btn btn-sm" onclick='openEditModal(${e.id})'>수정</button><button class="btn btn-sm btn-danger" onclick='doDeleteEquipment(${e.id},"${e.name}")'>삭제</button></div>`;
 
     return `<div class="admin-eq-row" data-id="${e.id}">
@@ -1429,6 +1430,41 @@ async function sendRenterMail(rentalId, mailType) {
   } catch(e) { toast('오류: ' + e.message); }
 }
 
+// ── 드래그앤드롭 업로드 ──
+function initDropZone(zoneId, fileInputId, previewId, onSelect) {
+  const zone = document.getElementById(zoneId);
+  if (!zone) return;
+
+  zone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    zone.classList.add('drag-over');
+  });
+  zone.addEventListener('dragleave', () => {
+    zone.classList.remove('drag-over');
+  });
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handlePhotoFile(file, zoneId, previewId, onSelect);
+  });
+}
+
+function handlePhotoFile(file, zoneId, previewId, onSelect) {
+  const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowed.includes(file.type)) { toast('JPG, PNG, WEBP만 가능합니다.'); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = e.target.result.split(',')[1];
+    const preview = document.getElementById(previewId);
+    if (preview) { preview.src = e.target.result; preview.style.display = 'block'; }
+    const zone = document.getElementById(zoneId);
+    if (zone) { zone.classList.add('has-file'); zone.innerHTML = '✅ ' + file.name; }
+    onSelect(base64, file.name);
+  };
+  reader.readAsDataURL(file);
+}
+
 // ── 모바일 사이드바 ──
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -1451,6 +1487,15 @@ document.querySelectorAll('.nav-item').forEach(n => {
 // ── 초기 로딩 ──
 document.getElementById('nav-cat-기자재').classList.add('active');
 loadEquipment();
+
+// 기자재 추가 폼 드롭존 초기화
+initDropZone('upload-zone', 'photo-file', 'photo-preview-img', (base64, name) => {
+  selectedPhotoBase64 = base64; selectedPhotoName = name;
+});
+// 수정 모달 드롭존 초기화
+initDropZone('edit-upload-zone', 'edit-photo-file', 'edit-photo-preview', (base64, name) => {
+  editPhotoBase64 = base64; editPhotoName = name;
+});
 </script>
 </body>
 </html>
@@ -1468,8 +1513,17 @@ function openEditModal(id) {
   document.getElementById('edit-condition').value = e.condition || '양호';
   document.getElementById('edit-note').value = e.note || '';
   const preview = document.getElementById('edit-photo-preview');
-  if (e.photoUrl) { preview.src = e.photoUrl; preview.style.display = 'block'; }
-  else { preview.style.display = 'none'; }
+  const zone = document.getElementById('edit-upload-zone');
+  if (e.photoUrl) { 
+    preview.src = e.photoUrl; 
+    preview.style.display = 'block';
+    zone.innerHTML = '✅ 기존 사진 등록됨 (새 사진 선택 시 교체)';
+    zone.classList.add('has-file');
+  } else { 
+    preview.style.display = 'none';
+    zone.classList.remove('has-file');
+    zone.innerHTML = '<div style="font-size:20px;margin-bottom:4px">📷</div>클릭하여 새 사진 선택';
+  }
   editPhotoBase64 = null; editPhotoName = null;
   const zone = document.getElementById('edit-upload-zone');
   zone.classList.remove('has-file');
