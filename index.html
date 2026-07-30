@@ -302,6 +302,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="8" width="20" height="8" rx="2"/><path d="M6 8V6M10 8V6M14 8V6M18 8V6M6 16v2M10 16v2M14 16v2M18 16v2"/></svg>
     RAM
   </button>
+  <button class="nav-item nav-sub" onclick="showPage('list');setCatFromNav('승인필요',this)" id="nav-cat-approval">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    승인 필요 기자재
+  </button>
   <button class="nav-item" onclick="showPage('checkout')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
     대여하기
@@ -625,6 +629,45 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </main>
 </div>
 
+<!-- 대여 신청 모달 -->
+<div class="modal-overlay" id="request-modal-overlay" onclick="closeRequestModal(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:420px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">대여 신청</div>
+        <div style="font-size:12px;color:var(--text-3);margin-top:2px" id="req-equip-name"></div>
+      </div>
+      <button class="modal-close" onclick="closeRequestModal()">✕</button>
+    </div>
+    <div style="background:var(--amber-bg);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--amber);margin-bottom:16px">
+      ⚠️ 해당 기자재는 관리자 확인 후 대여 가능합니다. 신청 후 관리자가 연락드립니다.
+    </div>
+    <input type="hidden" id="req-equip-id">
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">이름 <span style="color:var(--red);font-size:11px">* 필수</span></label>
+        <input class="form-input" type="text" id="req-name" placeholder="홍길동">
+      </div>
+      <div class="form-group">
+        <label class="form-label">이메일 <span style="color:var(--red);font-size:11px">* 필수</span></label>
+        <input class="form-input" type="email" id="req-contact" placeholder="hong@sungshin.ac.kr">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">반납 예정일 <span style="color:var(--red);font-size:11px">* 필수</span></label>
+      <input class="form-input" type="date" id="req-due">
+    </div>
+    <div class="form-group">
+      <label class="form-label">사용 목적 <span style="color:var(--red);font-size:11px">* 필수</span></label>
+      <textarea class="form-input" id="req-purpose" rows="2" placeholder="연구 프로젝트명, 지도교수 등..."></textarea>
+    </div>
+    <div class="form-footer">
+      <button class="btn btn-sm" onclick="closeRequestModal()">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="doRequestRental()">신청 제출</button>
+    </div>
+  </div>
+</div>
+
 <!-- 사진 상세 모달 -->
 <div class="modal-overlay" id="photo-modal-overlay" onclick="closePhotoModal(event)">
   <div class="modal" onclick="event.stopPropagation()">
@@ -728,7 +771,7 @@ function showPage(id) {
   if (navMap[id] !== undefined) document.querySelectorAll('.nav-item')[navMap[id]].classList.add('active');
   // list 페이지면 현재 카테고리 서브메뉴도 활성화
   if (id === 'list') {
-    const catNavMap = { '기자재': 'nav-cat-기자재', '와이파이 동글': 'nav-cat-wifi', 'RAM': 'nav-cat-ram' };
+    const catNavMap = { '기자재': 'nav-cat-기자재', '와이파이 동글': 'nav-cat-wifi', 'RAM': 'nav-cat-ram', '승인필요': 'nav-cat-approval' };
     const navEl = document.getElementById(catNavMap[currentCat]);
     if (navEl) navEl.classList.add('active');
   }
@@ -787,7 +830,7 @@ function setCatFromNav(cat, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
   // 페이지 타이틀 업데이트
-  const titles = { '기자재': '기자재 & 장비', '와이파이 동글': '와이파이 동글', 'RAM': 'RAM' };
+  const titles = { '기자재': '기자재 & 장비', '와이파이 동글': '와이파이 동글', 'RAM': 'RAM', '승인필요': '승인 필요 기자재' };
   document.querySelector('#page-list .page-title').textContent = titles[cat] || '기자재 & 장비 대여';
   document.querySelectorAll('.chip').forEach(c => { c.classList.remove('on'); if (c.dataset.filter === 'all') c.classList.add('on'); });
   renderEquipmentList();
@@ -867,9 +910,14 @@ function renderEquipmentList() {
       ? `<span class="eq-renter">${e.currentRental.renter}</span><div class="eq-renter-due">~${fmt(e.currentRental.dueDate)}</div>`
       : '<span style="color:var(--text-3);font-size:12px">—</span>';
 
-    const actionBtn = e.rentalStatus === '대여 가능'
-      ? `<button class="btn btn-sm" onclick="quickCheckout(${e.id},'${e.name}')">대여</button>`
-      : `<button class="btn btn-sm" style="opacity:0.35;cursor:default" disabled>—</button>`;
+    let actionBtn;
+    if (e.equipCategory === '승인필요') {
+      actionBtn = `<button class="btn btn-sm" style="border-color:#854F0B;color:#854F0B" onclick="openRequestModal(${e.id},'${e.name}')">신청하기</button>`;
+    } else if (e.rentalStatus === '대여 가능') {
+      actionBtn = `<button class="btn btn-sm" onclick="quickCheckout(${e.id},'${e.name}')">대여</button>`;
+    } else {
+      actionBtn = `<button class="btn btn-sm" style="opacity:0.35;cursor:default" disabled>—</button>`;
+    }
 
     return `<div class="eq-row">
       <span class="eq-no">${e.id}</span>
@@ -936,11 +984,25 @@ function openPhotoModal(id) {
   const btn = document.getElementById('pm-checkout-btn');
   btn.style.display = 'block';
   if (e.rentalStatus === '대여 가능') {
-    btn.textContent = '이 기자재 대여하기';
-    btn.style.opacity = '1';
-    btn.style.cursor = 'pointer';
-    btn.disabled = false;
-    btn.onclick = () => { closePhotoModal(); quickCheckout(e.id, e.name); };
+    if (e.requireApproval) {
+      btn.textContent = '이 기자재 신청하기';
+      btn.style.background = 'var(--amber-bg)';
+      btn.style.color = 'var(--amber)';
+      btn.style.borderColor = 'var(--amber)';
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
+      btn.disabled = false;
+      btn.onclick = () => { closePhotoModal(); openRequestModal(e.id, e.name); };
+    } else {
+      btn.textContent = '이 기자재 대여하기';
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
+      btn.disabled = false;
+      btn.onclick = () => { closePhotoModal(); quickCheckout(e.id, e.name); };
+    }
   } else {
     btn.textContent = e.rentalStatus === '대여중' ? '현재 대여중입니다' : e.rentalStatus === '기한 초과' ? '반납 기한 초과 중입니다' : '대여 불가';
     btn.style.opacity = '0.45';
@@ -1455,6 +1517,43 @@ function handlePhotoFile(file, zoneId, previewId, onSelect) {
     onSelect(base64, file.name);
   };
   reader.readAsDataURL(file);
+}
+
+// ── 대여 신청 모달 ──
+function openRequestModal(id, name) {
+  document.getElementById('req-equip-id').value = id;
+  document.getElementById('req-equip-name').textContent = name;
+  document.getElementById('req-name').value = '';
+  document.getElementById('req-contact').value = '';
+  document.getElementById('req-due').value = '';
+  document.getElementById('req-purpose').value = '';
+  document.getElementById('request-modal-overlay').classList.add('open');
+}
+function closeRequestModal(ev) {
+  if (!ev || ev.target === document.getElementById('request-modal-overlay'))
+    document.getElementById('request-modal-overlay').classList.remove('open');
+}
+async function doRequestRental() {
+  const equipId = document.getElementById('req-equip-id').value;
+  const equipName = document.getElementById('req-equip-name').textContent;
+  const renter = document.getElementById('req-name').value.trim();
+  const contact = document.getElementById('req-contact').value.trim();
+  const dueDate = document.getElementById('req-due').value;
+  const purpose = document.getElementById('req-purpose').value.trim();
+
+  if (!renter || !contact || !dueDate || !purpose) { toast('모든 항목을 입력해주세요.'); return; }
+  const emailRegex2 = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex2.test(contact)) { toast('올바른 이메일 주소를 입력해주세요.'); return; }
+
+  const btn = event.target; btn.textContent = '신청 중...'; btn.disabled = true;
+  try {
+    const res = await apiPost({ action: 'requestRental', equipId, equipName, renter, contact, dueDate, purpose });
+    if (res.success) {
+      toast('신청이 완료됐습니다! 관리자가 확인 후 연락드립니다.');
+      closeRequestModal();
+    } else toast(res.error || '신청 실패');
+  } catch(e) { toast('오류: ' + e.message); }
+  btn.textContent = '신청 제출'; btn.disabled = false;
 }
 
 // ── 모바일 사이드바 ──
