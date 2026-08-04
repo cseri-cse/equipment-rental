@@ -629,6 +629,43 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </main>
 </div>
 
+<!-- 대여하기 모달 -->
+<div class="modal-overlay" id="checkout-modal-overlay" onclick="closeCheckoutModal(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:420px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">대여하기</div>
+        <div style="font-size:12px;color:var(--text-3);margin-top:2px" id="co-modal-equip-name"></div>
+      </div>
+      <button class="modal-close" onclick="closeCheckoutModal()">✕</button>
+    </div>
+    <input type="hidden" id="co-modal-equip-id">
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">이름 <span style="color:var(--red);font-size:11px">* 필수</span></label>
+        <input class="form-input" type="text" id="co-modal-name" placeholder="홍길동">
+      </div>
+      <div class="form-group">
+        <label class="form-label">이메일 <span style="color:var(--red);font-size:11px">* 필수</span></label>
+        <input class="form-input" type="email" id="co-modal-contact" placeholder="hong@sungshin.ac.kr">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">반납 예정일 <span style="color:var(--red);font-size:11px">* 필수</span></label>
+      <input class="form-input" type="date" id="co-modal-due">
+    </div>
+    <div class="form-group">
+      <label class="form-label">사용 목적 (선택)</label>
+      <textarea class="form-input" id="co-modal-purpose" rows="2" placeholder="연구 프로젝트명 등..."></textarea>
+    </div>
+    <div class="tip">입력하신 이메일 주소는 대여 내역 조회 및 반납일 안내 목적으로만 활용됩니다.</div>
+    <div class="form-footer">
+      <button class="btn btn-sm" onclick="closeCheckoutModal()">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="doCheckoutModal()">대여 시작</button>
+    </div>
+  </div>
+</div>
+
 <!-- 대여 신청 모달 -->
 <div class="modal-overlay" id="request-modal-overlay" onclick="closeRequestModal(event)">
   <div class="modal" onclick="event.stopPropagation()" style="max-width:420px">
@@ -915,7 +952,7 @@ function renderEquipmentList() {
     if (e.equipCategory === '승인필요') {
       actionBtn = `<button class="btn btn-sm" style="border-color:#854F0B;color:#854F0B" onclick="openRequestModal(${e.id},'${e.name}')">신청하기</button>`;
     } else if (e.rentalStatus === '대여 가능') {
-      actionBtn = `<button class="btn btn-sm" onclick="quickCheckout(${e.id},'${e.name}')">대여</button>`;
+      actionBtn = `<button class="btn btn-sm" onclick="openCheckoutModal(${e.id},'${e.name}')">대여</button>`;
     } else {
       actionBtn = `<button class="btn btn-sm" style="opacity:0.35;cursor:default" disabled>—</button>`;
     }
@@ -1002,7 +1039,7 @@ function openPhotoModal(id) {
       btn.style.opacity = '1';
       btn.style.cursor = 'pointer';
       btn.disabled = false;
-      btn.onclick = () => { closePhotoModal(); quickCheckout(e.id, e.name); };
+      btn.onclick = () => { closePhotoModal(); openCheckoutModal(e.id, e.name); };
     }
   } else {
     btn.textContent = e.rentalStatus === '대여중' ? '현재 대여중입니다' : e.rentalStatus === '기한 초과' ? '반납 기한 초과 중입니다' : '대여 불가';
@@ -1518,6 +1555,44 @@ function handlePhotoFile(file, zoneId, previewId, onSelect) {
     onSelect(base64, file.name);
   };
   reader.readAsDataURL(file);
+}
+
+// ── 대여하기 모달 ──
+function openCheckoutModal(id, name) {
+  document.getElementById('co-modal-equip-id').value = id;
+  document.getElementById('co-modal-equip-name').textContent = name;
+  document.getElementById('co-modal-name').value = '';
+  document.getElementById('co-modal-contact').value = '';
+  document.getElementById('co-modal-due').value = '';
+  document.getElementById('co-modal-purpose').value = '';
+  document.getElementById('checkout-modal-overlay').classList.add('open');
+}
+function closeCheckoutModal(ev) {
+  if (!ev || ev.target === document.getElementById('checkout-modal-overlay'))
+    document.getElementById('checkout-modal-overlay').classList.remove('open');
+}
+async function doCheckoutModal() {
+  const equipId = document.getElementById('co-modal-equip-id').value;
+  const equipName = document.getElementById('co-modal-equip-name').textContent;
+  const renter = document.getElementById('co-modal-name').value.trim();
+  const contact = document.getElementById('co-modal-contact').value.trim();
+  const dueDate = document.getElementById('co-modal-due').value;
+  const purpose = document.getElementById('co-modal-purpose').value.trim();
+
+  if (!equipId || !renter || !contact || !dueDate) { toast('필수 항목을 모두 입력해주세요.'); return; }
+  const emailRegex3 = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex3.test(contact)) { toast('올바른 이메일 주소를 입력해주세요.'); return; }
+
+  const btn = event.target; btn.textContent = '처리 중...'; btn.disabled = true;
+  try {
+    const res = await apiPost({ action: 'checkout', equipId, equipName, renter, contact, dueDate, purpose });
+    if (res.success) {
+      toast('대여 처리됐습니다! 반납은 "내 대여/반납" 탭에서 해주세요.');
+      closeCheckoutModal();
+      loadEquipment();
+    } else toast(res.error || '대여 처리 실패');
+  } catch(e) { toast('오류: ' + e.message); }
+  btn.textContent = '대여 시작'; btn.disabled = false;
 }
 
 // ── 대여 신청 모달 ──
