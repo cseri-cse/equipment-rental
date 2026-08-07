@@ -1160,17 +1160,28 @@ async function loadMyRentals() {
       document.getElementById('my-results').innerHTML = '<div class="empty"><div class="empty-icon">📭</div>' + (res.error || '대여 내역이 없습니다.') + '</div>';
       return;
     }
+    // 대기자 있는 기자재 확인
+    const waitRes = await api({ action: 'getWaitlist' });
+    const waitEquips = new Set((waitRes.success ? waitRes.data : [])
+      .filter(w => w.status === '대기중')
+      .map(w => String(w.equipId)));
+
     const html = '<div class="card"><div class="card-title">현재 대여중 (' + res.data.length + '건)</div>' +
       res.data.map(r => {
         const isOverdue = r.status === '기한 초과';
         const days = isOverdue ? overdueDays(r.dueDate) : 0;
-        return `<div class="my-row">
+        const hasWaiter = waitEquips.has(String(r.equipId));
+        const extendBtn = hasWaiter
+          ? `<button class="btn btn-sm" disabled style="opacity:0.35;cursor:default" title="대기자가 있어 연장이 불가합니다">연장불가</button>`
+          : `<button class="btn btn-sm" onclick="openExtendModal('${r.rentalId}','${r.equipName}','${r.dueDate}','${name}','${contact}')">연장</button>`;
+        return `<div class="my-row" style="grid-template-columns:1fr auto auto auto">
           <div>
             <div style="font-size:13px;font-weight:500">${r.equipName}</div>
             <div style="font-size:11px;color:var(--text-3);margin-top:2px">대여일 ${r.rentedAt} · 반납 예정 ${r.dueDate} · 보관 위치 ${r.location}</div>
+            ${hasWaiter ? '<div style="font-size:11px;color:var(--purple-text);margin-top:3px">⏳ 대기자 있음 — 반납 예정일을 지켜주세요</div>' : ''}
           </div>
           ${isOverdue ? `<span class="badge b-overdue">기한 초과 ${days}일</span>` : `<span class="badge b-rented">대여중</span>`}
-          <button class="btn btn-sm" onclick="openExtendModal('${r.rentalId}','${r.equipName}','${r.dueDate}','${name}','${contact}')">연장</button>
+          ${extendBtn}
           <button class="btn btn-primary btn-sm" onclick="doReturn('${r.rentalId}','${name}','${contact}','${r.location}')">반납하기</button>
         </div>`;
       }).join('') + '</div>';
